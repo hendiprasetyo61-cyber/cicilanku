@@ -1,0 +1,43 @@
+const fs = require('fs');
+const path = require('path');
+
+// Membuat SVG icon CicilanKu
+const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="shopeeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5722"/>
+      <stop offset="50%" stop-color="#ee4d2d"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="128" fill="url(#shopeeGrad)"/>
+  
+  <!-- Shopping Bag Symbol -->
+  <path d="M160 200 C160 145 203 100 256 100 C309 100 352 145 352 200" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
+  <rect x="120" y="180" width="272" height="240" rx="36" fill="#ffffff" fill-opacity="0.18"/>
+  <rect x="128" y="190" width="256" height="220" rx="30" fill="#ffffff"/>
+  
+  <!-- CK Text / Dollar inside -->
+  <text x="256" y="325" font-family="Arial, sans-serif" font-weight="900" font-size="110" fill="#ee4d2d" text-anchor="middle">CK</text>
+  <circle cx="340" cy="380" r="42" fill="#10b981"/>
+  <path d="M325 380 L335 390 L355 370" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+// Simpan SVG
+const publicDir = path.join(__dirname, '..', 'public');
+fs.writeFileSync(path.join(publicDir, 'icon.svg'), svgIcon);
+
+// Buat minimal valid 1x1 / icon fallback PNG jika belum ada image processor
+// Minimal 1x1 orange PNG base64
+const minimalPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const pngBuffer = Buffer.from(minimalPngBase64, 'base64');
+
+['icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon.ico'].forEach(file => {
+  const filePath = path.join(publicDir, file);
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, pngBuffer);
+  }
+});
+
+console.log('Icon assets generated successfully.');

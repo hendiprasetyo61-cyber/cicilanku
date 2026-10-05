@@ -1,0 +1,212 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  ShoppingBag,
+  Plus,
+  Bell,
+  User,
+  Settings,
+  Users,
+  ArrowDownCircle,
+  Download,
+  LogOut,
+  ChevronDown,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { createClient } from '@/lib/supabase/client';
+
+export const Header: React.FC = () => {
+  const router = useRouter();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Ambil data user dari Supabase jika ada sesi aktif
+    const checkUser = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+          setUserEmail(user.email);
+          setIsLoggedIn(true);
+        }
+      } catch {
+        // fallback demo
+      }
+    };
+    checkUser();
+
+    // Close on click outside
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = async () => {
+    setIsProfileOpen(false);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+    router.push('/login');
+  };
+
+  const handleExportBackup = () => {
+    setIsProfileOpen(false);
+    if (typeof window === 'undefined') return;
+    const rawLoans = localStorage.getItem('cicilanku_loans_v1') || '[]';
+    const rawDebtors = localStorage.getItem('cicilanku_debtors_v1') || '[]';
+    const backupData = {
+      export_date: new Date().toISOString(),
+      loans: JSON.parse(rawLoans),
+      debtors: JSON.parse(rawDebtors),
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_cicilanku_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const displayName = userEmail ? userEmail.split('@')[0] : 'Pemilik Akun';
+  const displayEmail = userEmail || 'demo@cicilanku.local';
+  const initial = displayName.charAt(0).toUpperCase() || 'C';
+
+  return (
+    <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+        {/* Brand Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
+            <ShoppingBag className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-extrabold tracking-tight text-slate-900">
+                Cicilan<span className="text-shopee-500">Ku</span>
+              </span>
+              <span className="rounded-md bg-shopee-50 px-1.5 py-0.5 text-[10px] font-bold text-shopee-600 border border-shopee-200/60">
+                SPayLater
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium">Bantu Teman, Bebas Pusing</p>
+          </div>
+        </Link>
+
+        {/* Action Buttons & Profile Dropdown */}
+        <div className="flex items-center gap-2.5">
+          <Link href="/loans/new">
+            <Button size="sm" className="hidden sm:inline-flex shadow-sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Pinjaman Baru
+            </Button>
+          </Link>
+
+          <Link
+            href="/settings"
+            title="Pengaturan & Notifikasi"
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
+          >
+            <Bell className="h-5 w-5" />
+          </Link>
+
+          {/* Interactive Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsProfileOpen((prev) => !prev)}
+              aria-label="Menu Pengguna"
+              className="flex items-center gap-1.5 rounded-full p-1 border border-slate-200 hover:border-shopee-300 hover:shadow-xs transition duration-150 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
+            >
+              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                {initial}
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400 mr-1 hidden sm:block" />
+            </button>
+
+            {/* Dropdown Menu Modal */}
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white p-2 shadow-xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-150 z-50">
+                {/* User Info Header */}
+                <div className="p-3 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 truncate capitalize">{displayName}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-orange-50 text-shopee-600 border border-orange-200">
+                      {isLoggedIn ? 'Online' : 'Demo'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">{displayEmail}</p>
+                </div>
+
+                {/* Navigation Links */}
+                <div className="py-1.5 text-xs font-medium text-slate-700">
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <Settings className="h-4 w-4 text-slate-400" />
+                    <span>Pengaturan & Reminder</span>
+                  </Link>
+
+                  <Link
+                    href="/debtors"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <Users className="h-4 w-4 text-slate-400" />
+                    <span>Kelola Teman ({' '}Teman Peminjam{' '})</span>
+                  </Link>
+
+                  <Link
+                    href="/payments"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition"
+                  >
+                    <ArrowDownCircle className="h-4 w-4 text-slate-400" />
+                    <span>Riwayat Setoran Teman</span>
+                  </Link>
+
+                  <button
+                    onClick={handleExportBackup}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition text-left text-slate-700"
+                  >
+                    <Download className="h-4 w-4 text-slate-400" />
+                    <span>Cadangkan Data (JSON)</span>
+                  </button>
+                </div>
+
+                {/* Footer / Logout */}
+                <div className="pt-1.5 border-t border-slate-100">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 font-semibold text-xs transition text-left"
+                  >
+                    <LogOut className="h-4 w-4 text-rose-500" />
+                    <span>{isLoggedIn ? 'Keluar Akun' : 'Ganti / Masuk Akun'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
