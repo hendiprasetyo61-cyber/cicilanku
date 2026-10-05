@@ -1,9 +1,8 @@
 {
   "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/register/page": "app/(auth)/register/page.js",
   "/(dashboard)/page": "app/(dashboard)/page.js",
-  "/(dashboard)/payments/page": "app/(dashboard)/payments/page.js",
-  "/(dashboard)/debtors/page": "app/(dashboard)/debtors/page.js",
   "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
-  "/(dashboard)/loans/page": "app/(dashboard)/loans/page.js",
-  "/(dashboard)/loans/new/page": "app/(dashboard)/loans/new/page.js"
+  "/(dashboard)/loans/new/page": "app/(dashboard)/loans/new/page.js",
+  "/(dashboard)/loans/page": "app/(dashboard)/loans/page.js"
 }

@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Progress } from '@/components/ui/Progress';
-import { getStoredLoans } from '@/lib/store';
+import { createClient } from '@/lib/supabase/client';
 import { calculateLoanBalance } from '@/lib/calculations/balance';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
 import { PaylaterLoan } from '@/lib/types';
@@ -28,13 +28,31 @@ export default function PublicSharePage() {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Cari pinjaman berdasarkan share_token
-    const loans = getStoredLoans();
-    const found = loans.find((l) => l.share_token === token);
-    if (found) {
-      setLoan(found);
-    }
-    setIsReady(true);
+    const fetchSharedLoan = async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('paylater_loans')
+          .select(`
+            *,
+            debtor:debtors(*),
+            installments(*),
+            debtor_payments(*)
+          `)
+          .eq('share_token', token)
+          .maybeSingle();
+
+        if (data && !error) {
+          setLoan(data as any);
+        }
+      } catch (err) {
+        console.error('Error fetching shared loan:', err);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    fetchSharedLoan();
   }, [token]);
 
   if (!isReady) {

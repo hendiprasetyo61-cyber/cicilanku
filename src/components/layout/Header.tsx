@@ -7,15 +7,12 @@ import {
   ShoppingBag,
   Plus,
   Bell,
-  User,
   Settings,
   Users,
   ArrowDownCircle,
   Download,
   LogOut,
   ChevronDown,
-  ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { createClient } from '@/lib/supabase/client';
@@ -23,27 +20,28 @@ import { createClient } from '@/lib/supabase/client';
 export const Header: React.FC = () => {
   const router = useRouter();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [userFullName, setUserFullName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Ambil data user dari Supabase jika ada sesi aktif
-    const checkUser = async () => {
+    const fetchUser = async () => {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.email) {
-          setUserEmail(user.email);
-          setIsLoggedIn(true);
+        if (user) {
+          const metadata = user.user_metadata || {};
+          const name = metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Pengguna';
+          setUserFullName(name);
+          setUserEmail(user.email || null);
         }
-      } catch {
-        // fallback demo
+      } catch (err) {
+        console.error('Error fetching user:', err);
       }
     };
-    checkUser();
 
-    // Close on click outside
+    fetchUser();
+
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
@@ -59,34 +57,14 @@ export const Header: React.FC = () => {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-    } catch {
-      // ignore
+    } catch (e) {
+      console.error('Signout error:', e);
     }
     router.push('/login');
+    router.refresh();
   };
 
-  const handleExportBackup = () => {
-    setIsProfileOpen(false);
-    if (typeof window === 'undefined') return;
-    const rawLoans = localStorage.getItem('cicilanku_loans_v1') || '[]';
-    const rawDebtors = localStorage.getItem('cicilanku_debtors_v1') || '[]';
-    const backupData = {
-      export_date: new Date().toISOString(),
-      loans: JSON.parse(rawLoans),
-      debtors: JSON.parse(rawDebtors),
-    };
-
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_cicilanku_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const displayName = userEmail ? userEmail.split('@')[0] : 'Pemilik Akun';
-  const displayEmail = userEmail || 'demo@cicilanku.local';
+  const displayName = userFullName || (userEmail ? userEmail.split('@')[0] : 'Akun Saya');
   const initial = displayName.charAt(0).toUpperCase() || 'C';
 
   return (
@@ -147,11 +125,10 @@ export const Header: React.FC = () => {
                 <div className="p-3 border-b border-slate-100">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900 truncate capitalize">{displayName}</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-orange-50 text-shopee-600 border border-orange-200">
-                      {isLoggedIn ? 'Online' : 'Demo'}
-                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 truncate mt-0.5">{displayEmail}</p>
+                  {userEmail && (
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{userEmail}</p>
+                  )}
                 </div>
 
                 {/* Navigation Links */}
@@ -171,7 +148,7 @@ export const Header: React.FC = () => {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition"
                   >
                     <Users className="h-4 w-4 text-slate-400" />
-                    <span>Kelola Teman ({' '}Teman Peminjam{' '})</span>
+                    <span>Kelola Teman</span>
                   </Link>
 
                   <Link
@@ -182,14 +159,6 @@ export const Header: React.FC = () => {
                     <ArrowDownCircle className="h-4 w-4 text-slate-400" />
                     <span>Riwayat Setoran Teman</span>
                   </Link>
-
-                  <button
-                    onClick={handleExportBackup}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition text-left text-slate-700"
-                  >
-                    <Download className="h-4 w-4 text-slate-400" />
-                    <span>Cadangkan Data (JSON)</span>
-                  </button>
                 </div>
 
                 {/* Footer / Logout */}
@@ -199,7 +168,7 @@ export const Header: React.FC = () => {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 font-semibold text-xs transition text-left"
                   >
                     <LogOut className="h-4 w-4 text-rose-500" />
-                    <span>{isLoggedIn ? 'Keluar Akun' : 'Ganti / Masuk Akun'}</span>
+                    <span>Keluar Akun</span>
                   </button>
                 </div>
               </div>

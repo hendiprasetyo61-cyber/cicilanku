@@ -16,7 +16,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCicilanStore } from '@/lib/store';
-import { INITIAL_DEBTORS, INITIAL_LOANS, INITIAL_SETTINGS } from '@/lib/demo-data';
 
 export default function SettingsPage() {
   const { settings, updateSettings, isLoaded } = useCicilanStore();
@@ -88,22 +87,11 @@ export default function SettingsPage() {
     setTimeout(() => setSaveSuccess(false), 1500);
   };
 
-  const handleResetData = () => {
-    if (confirm('Kembalikan semua data ke contoh awal (Seed Data HP Rp 3jt)? Semua perubahan kamu akan di-reset.')) {
-      localStorage.setItem('cicilanku_debtors_v1', JSON.stringify(INITIAL_DEBTORS));
-      localStorage.setItem('cicilanku_loans_v1', JSON.stringify(INITIAL_LOANS));
-      localStorage.setItem('cicilanku_settings_v1', JSON.stringify(INITIAL_SETTINGS));
-      window.location.reload();
-    }
-  };
-
   const handleExportBackup = () => {
-    const rawLoans = localStorage.getItem('cicilanku_loans_v1') || '[]';
-    const rawDebtors = localStorage.getItem('cicilanku_debtors_v1') || '[]';
     const backupData = {
       export_date: new Date().toISOString(),
-      loans: JSON.parse(rawLoans),
-      debtors: JSON.parse(rawDebtors),
+      user_id: settings.user_id,
+      settings: settings,
     };
 
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -279,15 +267,11 @@ export default function SettingsPage() {
 
       {/* 3. Manajemen Data & Backup */}
       <Card className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-800">Cadangan & Reset Data</h2>
+        <h2 className="text-sm font-bold text-slate-800">Cadangan Data Pengaturan</h2>
         <div className="flex flex-wrap gap-2.5 pt-1">
           <Button size="sm" variant="outline" onClick={handleExportBackup}>
             <Download className="h-4 w-4 mr-1 text-slate-600" />
             Cadangkan Data (JSON)
-          </Button>
-          <Button size="sm" variant="ghost" onClick={handleResetData} className="text-rose-600 hover:bg-rose-50">
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Reset ke Data Awal Demo
           </Button>
         </div>
       </Card>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, ArrowRight, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -27,35 +28,23 @@ export default function LoginPage() {
       setIsLoading(true);
       setError('');
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
       if (authError) {
-        // Jika project Supabase belum disetup atau credentials dummy, arahkan ke dashboard dengan mode demo
-        if (
-          authError.message.includes('FetchError') ||
-          authError.message.includes('Invalid login') ||
-          authError.message.includes('placeholder')
-        ) {
-          router.push('/');
-          return;
-        }
-        setError(authError.message);
+        setError(authError.message === 'Invalid login credentials' ? 'Email atau kata sandi salah' : authError.message);
         setIsLoading(false);
         return;
       }
 
       router.push('/');
+      router.refresh();
     } catch (err: any) {
-      // Fallback ke demo mode jika offline
-      router.push('/');
+      setError(err?.message || 'Terjadi kesalahan saat masuk');
+      setIsLoading(false);
     }
-  };
-
-  const handleDemoLogin = () => {
-    router.push('/');
   };
 
   return (
@@ -78,7 +67,7 @@ export default function LoginPage() {
         <Card className="p-6 sm:p-8 space-y-5 bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/80">
           <div className="border-b border-slate-100 pb-3">
             <h2 className="text-base font-bold text-slate-900">Masuk ke Akun</h2>
-            <p className="text-xs text-slate-500">Masukkan email dan kata sandi kamu</p>
+            <p className="text-xs text-slate-500">Masukkan email dan kata sandi akun kamu</p>
           </div>
 
           {error && (
@@ -99,10 +88,20 @@ export default function LoginPage() {
 
             <Input
               label="Kata Sandi"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-slate-400 hover:text-slate-600 focus:outline-none"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
               required
             />
 
@@ -110,25 +109,6 @@ export default function LoginPage() {
               Masuk Sekarang <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </form>
-
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-              Atau Akses Cepat
-            </span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
-
-          {/* Quick Demo Mode */}
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleDemoLogin}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-xs"
-          >
-            <Sparkles className="h-4 w-4 mr-1.5 text-amber-400" />
-            Buka Langsung Mode Demo (HP Rp 3 Juta)
-          </Button>
 
           <div className="text-center pt-2">
             <p className="text-xs text-slate-500">

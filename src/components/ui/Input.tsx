@@ -1,11 +1,12 @@
 import React from 'react';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   label?: string;
   error?: string;
   helperText?: string;
-  prefix?: string;
-  suffix?: string;
+  prefix?: React.ReactNode;
+  suffix?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -21,26 +22,24 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative flex items-center rounded-xl shadow-sm">
           {prefix && (
-            <span className="absolute left-3 text-xs font-semibold text-slate-500 select-none pointer-events-none">
+            <span className="absolute left-3 text-xs font-semibold text-slate-500 flex items-center">
               {prefix}
             </span>
           )}
           <input
             id={inputId}
             ref={ref}
-            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-2 ${
-              prefix ? 'pl-10' : ''
-            } ${suffix ? 'pr-10' : ''} ${
-              error
+            className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition-all duration-150 focus:outline-none focus:ring-2 ${prefix ? 'pl-10' : ''
+              } ${suffix ? 'pr-11' : ''} ${error
                 ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/20'
                 : 'border-slate-200 hover:border-slate-300 focus:border-shopee-500 focus:ring-shopee-500/20'
-            } ${className}`}
+              } ${className}`}
             {...props}
           />
           {suffix && (
-            <span className="absolute right-3 text-xs font-medium text-slate-400 select-none pointer-events-none">
+            <div className="absolute right-3 text-xs font-medium text-slate-400 flex items-center">
               {suffix}
-            </span>
+            </div>
           )}
         </div>
         {error ? (

@@ -111,7 +111,7 @@ export default function DashboardPage() {
           <Button
             size="sm"
             onClick={() => setIsDebtorPaymentOpen(true)}
-            className="bg-white text-slate-900 hover:bg-slate-100 font-bold shadow-sm"
+            className="!bg-white !text-slate-900 hover:!bg-slate-100 font-bold shadow-sm !border-0"
           >
             <ArrowDownRight className="h-4 w-4 mr-1 text-emerald-600" />
             Catat Setoran Teman
@@ -120,7 +120,7 @@ export default function DashboardPage() {
             <Button
               size="sm"
               variant="outline"
-              className="bg-orange-600/60 border-orange-300/40 text-white hover:bg-orange-700"
+              className="!bg-orange-600 !border-orange-400 !text-white hover:!bg-orange-700 font-bold"
             >
               <Plus className="h-4 w-4 mr-1" />
               Pinjaman
@@ -148,13 +148,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span
-                    className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${
-                      nearestInstallment.isPast
+                    className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${nearestInstallment.isPast
                         ? 'bg-rose-100 text-rose-700'
                         : nearestInstallment.isToday
-                        ? 'bg-amber-100 text-amber-800 animate-pulse'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}
+                          ? 'bg-amber-100 text-amber-800 animate-pulse'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
                   >
                     {nearestInstallment.label}
                   </span>
@@ -228,9 +227,8 @@ export default function DashboardPage() {
         {/* Card 3: Posisi Kas Saya (Nombok vs Surplus) */}
         <Card
           hoverable
-          className={`border-l-4 flex flex-col justify-between ${
-            isKasNombok ? 'border-l-rose-500 bg-rose-50/20' : 'border-l-emerald-500 bg-emerald-50/20'
-          }`}
+          className={`border-l-4 flex flex-col justify-between ${isKasNombok ? 'border-l-rose-500 bg-rose-50/20' : 'border-l-emerald-500 bg-emerald-50/20'
+            }`}
         >
           <div>
             <div className="flex items-center justify-between">
@@ -316,9 +314,8 @@ export default function DashboardPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                        alert.isPast ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'
-                      }`}
+                      className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${alert.isPast ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'
+                        }`}
                     >
                       {alert.label}
                     </span>
