@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Users, Phone, MessageSquare, Edit2, Trash2, CreditCard } from 'lucide-react';
+import { Plus, Users, Phone, MessageSquare, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal'; // Import komponen Modal
 import { useCicilanStore } from '@/lib/store';
 import { DebtorModal } from '@/components/debtors/DebtorModal';
 import { calculateLoanBalance } from '@/lib/calculations/balance';
@@ -12,9 +12,17 @@ import { formatRupiah } from '@/lib/formatters';
 import { Debtor } from '@/lib/types';
 
 export default function DebtorsPage() {
-  const { debtors, loans, deleteDebtor, isLoaded } = useCicilanStore();
+  // Tambahkan refreshData ke destructuring
+  const { debtors, loans, deleteDebtor, isLoaded, refreshData } = useCicilanStore();
+
+  // State untuk form Tambah/Edit Teman
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [debtorToEdit, setDebtorToEdit] = useState<Debtor | null>(null);
+
+  // State untuk Modal Konfirmasi Hapus
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [debtorToDelete, setDebtorToDelete] = useState<Debtor | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -34,16 +42,30 @@ export default function DebtorsPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (debtor: Debtor) => {
-    const hasLoans = loans.some((l) => l.debtor_id === debtor.id);
-    if (hasLoans) {
-      alert(`Tidak dapat menghapus "${debtor.nama_teman}" karena masih memiliki transaksi pinjaman terdaftar.`);
-      return;
-    }
-    if (confirm(`Hapus data teman "${debtor.nama_teman}"?`)) {
-      deleteDebtor(debtor.id);
+  // Hanya membuka modal konfirmasi, bukan langsung menghapus
+  const handleDeleteClick = (debtor: Debtor) => {
+    setDebtorToDelete(debtor);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Fungsi eksekusi hapus yang dipanggil dari dalam Modal Konfirmasi
+  const confirmDelete = async () => {
+    if (!debtorToDelete) return;
+    try {
+      setIsDeleting(true);
+      await deleteDebtor(debtorToDelete.id);
+      setIsDeleteModalOpen(false);
+      setDebtorToDelete(null);
+      refreshData(); // Sinkronisasi UI tanpa refresh browser
+    } catch (error) {
+      console.error('Gagal menghapus data:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
+
+  // Cek apakah teman yang akan dihapus masih memiliki pinjaman aktif
+  const hasLoans = debtorToDelete ? loans.some((l) => l.debtor_id === debtorToDelete.id) : false;
 
   return (
     <div className="space-y-5">
@@ -112,7 +134,7 @@ export default function DebtorsPage() {
                         <Edit2 className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(debtor)}
+                        onClick={() => handleDeleteClick(debtor)}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
                         title="Hapus data teman"
                       >
@@ -168,12 +190,62 @@ export default function DebtorsPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal Form Tambah/Edit Teman */}
       <DebtorModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         debtorToEdit={debtorToEdit}
+        onSuccess={() => {
+          // Kini tidak perlu window.location.reload()
+          refreshData();
+        }}
       />
+
+      {/* Modal Konfirmasi Hapus Kustom */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+        title={hasLoans ? 'Tidak Dapat Menghapus' : 'Konfirmasi Hapus'}
+        description=""
+      >
+        <div className="space-y-4">
+          {hasLoans ? (
+            <>
+              <div className="flex items-center gap-3 rounded-xl bg-orange-50 p-3.5 border border-orange-200/60 text-orange-800 text-sm">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <p>
+                  Data <strong>{debtorToDelete?.nama_teman}</strong> tidak bisa dihapus karena masih memiliki riwayat pinjaman terdaftar di sistem.
+                </p>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button onClick={() => setIsDeleteModalOpen(false)}>Saya Mengerti</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-slate-600">
+                Apakah kamu yakin ingin menghapus data <strong>{debtorToDelete?.nama_teman}</strong>? Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Batal
+                </Button>
+                <Button
+                  className="bg-rose-600 hover:bg-rose-700 text-white"
+                  onClick={confirmDelete}
+                  isLoading={isDeleting}
+                >
+                  Ya, Hapus
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

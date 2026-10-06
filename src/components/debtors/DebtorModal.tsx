@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Debtor } from '@/lib/types';
-import { saveDebtor, updateDebtor } from '@/lib/store';
+import { useCicilanStore } from '@/lib/store';
 
 export interface DebtorModalProps {
   isOpen: boolean;
@@ -20,6 +20,8 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
   debtorToEdit,
   onSuccess,
 }) => {
+  const { saveDebtor, updateDebtor } = useCicilanStore();
+
   const [namaTeman, setNamaTeman] = useState('');
   const [noHp, setNoHp] = useState('');
   const [catatan, setCatatan] = useState('');
@@ -39,7 +41,8 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
     setError('');
   }, [debtorToEdit, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 1. Tambahkan 'async' di sini
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namaTeman.trim()) {
       setError('Nama teman wajib diisi');
@@ -49,7 +52,8 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
     try {
       setIsLoading(true);
       if (debtorToEdit) {
-        updateDebtor(debtorToEdit.id, {
+        // 2. Tambahkan 'await'
+        await updateDebtor(debtorToEdit.id, {
           nama_teman: namaTeman.trim(),
           no_hp: noHp.trim() || null,
           catatan: catatan.trim() || null,
@@ -58,7 +62,8 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
         onClose();
         if (onSuccess) onSuccess({ ...debtorToEdit, nama_teman: namaTeman });
       } else {
-        const created = saveDebtor({
+        // 3. Tambahkan 'await' untuk menunggu hasil Promise
+        const created = await saveDebtor({
           user_id: 'user-demo-01',
           nama_teman: namaTeman.trim(),
           no_hp: noHp.trim() || null,
@@ -66,7 +71,11 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
         });
         setIsLoading(false);
         onClose();
-        if (onSuccess) onSuccess(created);
+
+        // 4. Pastikan 'created' tidak null sebelum memanggil onSuccess
+        if (onSuccess && created) {
+          onSuccess(created);
+        }
       }
     } catch (err: any) {
       setIsLoading(false);
@@ -109,7 +118,7 @@ export const DebtorModal: React.FC<DebtorModalProps> = ({
             placeholder="Misal: Teman kantor lantai 3, suka bayar pas tanggal 25 gajian."
             value={catatan}
             onChange={(e) => setCatatan(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
+            className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-900 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
           />
         </div>
 

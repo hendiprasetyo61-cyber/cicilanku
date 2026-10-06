@@ -14,6 +14,7 @@ import {
   TrendingDown,
   TrendingUp,
   Share2,
+  Check, // Import Check untuk animasi copy
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -27,13 +28,17 @@ import { ShopeePayModal } from '@/components/loans/ShopeePayModal';
 import { Installment, PaylaterLoan } from '@/lib/types';
 
 export default function DashboardPage() {
-  const { loans, debtors, isLoaded } = useCicilanStore();
+  // Tambahkan refreshData
+  const { loans, debtors, isLoaded, refreshData } = useCicilanStore();
 
   const [isDebtorPaymentOpen, setIsDebtorPaymentOpen] = useState(false);
   const [selectedShopeeInst, setSelectedShopeeInst] = useState<{
     installment: Installment;
     loan: PaylaterLoan;
   } | null>(null);
+
+  // State untuk Copy Link
+  const [copiedLoanId, setCopiedLoanId] = useState<string | null>(null);
 
   if (!isLoaded) {
     return (
@@ -94,10 +99,20 @@ export default function DashboardPage() {
   // Filter peringatan (telat atau H-3 s.d H-0)
   const urgentAlerts = allUpcomingInstallments.filter((item) => item.diffDays <= 3);
 
+  // Fungsi Copy Share Link Modern
+  const handleCopyShareLink = (loanId: string, shareToken: string) => {
+    const shareUrl = `${window.location.origin}/share/${shareToken}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLoanId(loanId);
+    setTimeout(() => {
+      setCopiedLoanId(null);
+    }, 2000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome & Quick Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-orange-500 via-rose-500 to-shopee-600 rounded-2xl p-5 text-white shadow-md shadow-shopee-500/15">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-linear-to-r from-orange-500 via-rose-500 to-shopee-600 rounded-2xl p-5 text-white shadow-md shadow-shopee-500/15">
         <div>
           <span className="text-xs uppercase tracking-wider text-orange-100 font-semibold">Ringkasan SPayLater</span>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight mt-0.5">
@@ -111,7 +126,7 @@ export default function DashboardPage() {
           <Button
             size="sm"
             onClick={() => setIsDebtorPaymentOpen(true)}
-            className="!bg-white !text-slate-900 hover:!bg-slate-100 font-bold shadow-sm !border-0"
+            className="bg-white! text-slate-900! hover:bg-slate-100! font-bold shadow-sm border-0!"
           >
             <ArrowDownRight className="h-4 w-4 mr-1 text-emerald-600" />
             Catat Setoran Teman
@@ -120,7 +135,7 @@ export default function DashboardPage() {
             <Button
               size="sm"
               variant="outline"
-              className="!bg-orange-600 !border-orange-400 !text-white hover:!bg-orange-700 font-bold"
+              className="bg-orange-600! border-orange-400! text-white! hover:bg-orange-700! font-bold"
             >
               <Plus className="h-4 w-4 mr-1" />
               Pinjaman
@@ -149,10 +164,10 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-1.5 mt-1">
                   <span
                     className={`inline-flex items-center text-xs font-bold px-2 py-0.5 rounded-full ${nearestInstallment.isPast
-                        ? 'bg-rose-100 text-rose-700'
-                        : nearestInstallment.isToday
-                          ? 'bg-amber-100 text-amber-800 animate-pulse'
-                          : 'bg-blue-100 text-blue-700'
+                      ? 'bg-rose-100 text-rose-700'
+                      : nearestInstallment.isToday
+                        ? 'bg-amber-100 text-amber-800 animate-pulse'
+                        : 'bg-blue-100 text-blue-700'
                       }`}
                   >
                     {nearestInstallment.label}
@@ -377,6 +392,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loans.map((loan) => {
               const summary = calculateLoanBalance(loan, loan.installments || [], loan.debtor_payments || []);
+              const isCopied = copiedLoanId === loan.id;
+
               return (
                 <Card key={loan.id} hoverable className="flex flex-col justify-between">
                   <div>
@@ -391,14 +408,17 @@ export default function DashboardPage() {
                           {loan.order_id_shopee && ` • Order: ${loan.order_id_shopee}`}
                         </p>
                       </div>
-                      <Link
-                        href={`/share/${loan.share_token}`}
-                        target="_blank"
-                        title="Link publik untuk teman"
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-shopee-600 transition"
+
+                      <button
+                        onClick={() => handleCopyShareLink(loan.id, loan.share_token)}
+                        title="Salin link rincian tagihan"
+                        className={`rounded-lg p-2 transition ${isCopied
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : 'text-slate-400 hover:bg-slate-100 hover:text-shopee-600'
+                          }`}
                       >
-                        <Share2 className="h-4 w-4" />
-                      </Link>
+                        {isCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                      </button>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
@@ -445,6 +465,7 @@ export default function DashboardPage() {
         isOpen={isDebtorPaymentOpen}
         onClose={() => setIsDebtorPaymentOpen(false)}
         loans={loans}
+        onSuccess={() => refreshData()} // Refresh otomatis saat setoran berhasil
       />
 
       <ShopeePayModal
@@ -452,6 +473,7 @@ export default function DashboardPage() {
         onClose={() => setSelectedShopeeInst(null)}
         installment={selectedShopeeInst?.installment || null}
         namaBarang={selectedShopeeInst?.loan.nama_barang}
+        onSuccess={() => refreshData()} // Refresh otomatis saat tagihan shopee berhasil dibayar
       />
     </div>
   );

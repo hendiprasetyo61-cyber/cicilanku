@@ -72,7 +72,7 @@ export const Header: React.FC = () => {
       <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
             <ShoppingBag className="h-5 w-5" />
           </div>
           <div>
@@ -112,7 +112,7 @@ export const Header: React.FC = () => {
               aria-label="Menu Pengguna"
               className="flex items-center gap-1.5 rounded-full p-1 border border-slate-200 hover:border-shopee-300 hover:shadow-xs transition duration-150 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-linear-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
                 {initial}
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400 mr-1 hidden sm:block" />

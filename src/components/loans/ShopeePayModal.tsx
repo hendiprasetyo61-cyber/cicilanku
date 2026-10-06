@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+// 1. Tambahkan useEffect pada import
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Installment } from '@/lib/types';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
-import { recordShopeePayment } from '@/lib/store';
+import { useCicilanStore } from '@/lib/store';
 
 export interface ShopeePayModalProps {
   isOpen: boolean;
@@ -23,17 +24,34 @@ export const ShopeePayModal: React.FC<ShopeePayModalProps> = ({
   namaBarang,
   onSuccess,
 }) => {
-  if (!installment) return null;
+  const { recordShopeePayment } = useCicilanStore();
 
-  const sisaHarusDibayar = Math.max(0, installment.total_tagihan - installment.sudah_dibayar);
+  // 2. Gunakan fallback (0) agar tidak error saat installment masih null
+  const sisaHarusDibayar = installment
+    ? Math.max(0, installment.total_tagihan - installment.sudah_dibayar)
+    : 0;
 
+  // 3. SEMUA HOOKS HARUS BERADA DI ATAS (sebelum ada if / return)
   const [jumlah, setJumlah] = useState<number>(sisaHarusDibayar);
   const [tanggalBayar, setTanggalBayar] = useState<string>(new Date().toISOString().split('T')[0]);
   const [catatan, setCatatan] = useState<string>('Bayar Shopee PayLater');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 4. Gunakan useEffect untuk mereset form setiap kali modal dibuka dengan data cicilan baru
+  useEffect(() => {
+    if (isOpen && installment) {
+      setJumlah(Math.max(0, installment.total_tagihan - installment.sudah_dibayar));
+      setTanggalBayar(new Date().toISOString().split('T')[0]);
+      setCatatan('Bayar Shopee PayLater');
+      setError('');
+    }
+  }, [isOpen, installment]);
+
+  // 5. EARLY RETURN DILETAKKAN SETELAH SEMUA HOOKS
+  if (!isOpen || !installment) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!jumlah || jumlah <= 0) {
       setError('Nominal pembayaran harus lebih besar dari Rp 0');
@@ -46,7 +64,7 @@ export const ShopeePayModal: React.FC<ShopeePayModalProps> = ({
 
     try {
       setIsLoading(true);
-      recordShopeePayment({
+      await recordShopeePayment({
         installmentId: installment.id!,
         jumlah: Math.round(jumlah),
         tanggalBayar,

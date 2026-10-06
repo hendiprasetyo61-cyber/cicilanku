@@ -1,14 +1,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1. Beri tahu Tailwind v4 letak folder kode Anda untuk di-scan */
+@source "../components";
+@source "../app";
+@source "../lib";
+
+/* 2. Daftarkan warna kustom 'shopee' ke dalam tema bawaan Tailwind */
+@theme {
+  --color-shopee-50: #fff5f2;
+  --color-shopee-100: #ffe7e0;
+  --color-shopee-200: #ffc9b9;
+  --color-shopee-300: #ffa288;
+  --color-shopee-400: #ff6e4b;
+  --color-shopee-500: #ee4d2d;
+  --color-shopee-600: #d73211;
+  --color-shopee-700: #b4230b;
+  --color-shopee-800: #94200e;
+  --color-shopee-900: #7a1d10;
+}
 
 :root {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --color-shopee: #ee4d2d;
-  --color-shopee-dark: #d73211;
   --color-bg: #f8fafc;
   --color-card: #ffffff;
   --color-border: #e2e8f0;
@@ -34,6 +48,7 @@ body {
 .glass-card-hover {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 .glass-card-hover:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
@@ -65,13 +80,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }

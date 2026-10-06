@@ -6,15 +6,26 @@ import { Plus, ArrowDownRight, Trash2, Search, ExternalLink, Calendar, Filter } 
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal'; // Import komponen Modal
 import { useCicilanStore } from '@/lib/store';
 import { DebtorPaymentModal } from '@/components/payments/DebtorPaymentModal';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
 
 export default function PaymentsPage() {
-  const { loans, deleteDebtorPayment, isLoaded } = useCicilanStore();
+  // Tambahkan refreshData
+  const { loans, deleteDebtorPayment, isLoaded, refreshData } = useCicilanStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMetode, setFilterMetode] = useState<'semua' | 'transfer' | 'tunai'>('semua');
+
+  // State untuk Modal Hapus
+  const [paymentToDelete, setPaymentToDelete] = useState<{
+    id: string;
+    loanId: string;
+    jumlah: number;
+    namaTeman: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -68,6 +79,21 @@ export default function PaymentsPage() {
 
   const totalFilteredJumlah = filteredPayments.reduce((acc, p) => acc + p.jumlah, 0);
 
+  // Fungsi Eksekusi Hapus Setoran (Dipanggil dari Modal)
+  const confirmDelete = async () => {
+    if (!paymentToDelete) return;
+    try {
+      setIsDeleting(true);
+      await deleteDebtorPayment(paymentToDelete.loanId, paymentToDelete.id);
+      setPaymentToDelete(null);
+      refreshData(); // Otomatis perbarui tabel dan total kas
+    } catch (error) {
+      console.error('Gagal menghapus setoran:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -111,7 +137,7 @@ export default function PaymentsPage() {
             placeholder="Cari nama teman, barang, atau catatan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-xs text-slate-900 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
           />
         </div>
 
@@ -120,11 +146,10 @@ export default function PaymentsPage() {
             <button
               key={metode}
               onClick={() => setFilterMetode(metode)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${
-                filterMetode === metode
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${filterMetode === metode
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               {metode}
             </button>
@@ -195,11 +220,12 @@ export default function PaymentsPage() {
                   )}
 
                   <button
-                    onClick={() => {
-                      if (confirm(`Hapus catatan setoran ${formatRupiah(p.jumlah)} dari ${p.namaTeman}? Saldo akan dihitung ulang secara otomatis.`)) {
-                        deleteDebtorPayment(p.loanId, p.id);
-                      }
-                    }}
+                    onClick={() => setPaymentToDelete({
+                      id: p.id,
+                      loanId: p.loanId,
+                      jumlah: p.jumlah,
+                      namaTeman: p.namaTeman
+                    })}
                     className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                     title="Hapus setoran ini"
                   >
@@ -212,12 +238,45 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Modal */}
+      {/* Modal Catat Setoran */}
       <DebtorPaymentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         loans={loans}
+        onSuccess={() => refreshData()} // Memastikan data langsung ter-refresh otomatis
       />
+
+      {/* Modal Konfirmasi Hapus Kustom */}
+      <Modal
+        isOpen={!!paymentToDelete}
+        onClose={() => !isDeleting && setPaymentToDelete(null)}
+        title="Hapus Riwayat Setoran"
+        description=""
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Apakah kamu yakin ingin menghapus data setoran sebesar <strong>{paymentToDelete ? formatRupiah(paymentToDelete.jumlah) : ''}</strong> dari <strong>{paymentToDelete?.namaTeman}</strong>?
+            <br /><br />
+            Saldo "Total Setoran Terkumpul" akan otomatis dihitung ulang.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <Button
+              variant="outline"
+              onClick={() => setPaymentToDelete(null)}
+              disabled={isDeleting}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={confirmDelete}
+              isLoading={isDeleting}
+            >
+              Ya, Hapus Setoran
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

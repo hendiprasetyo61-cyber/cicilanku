@@ -48,11 +48,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-orange-50/30 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-slate-50 via-orange-50/30 to-slate-100">
       <div className="max-w-md w-full space-y-6">
         {/* Brand Banner */}
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-shopee-600 to-shopee-400 text-white shadow-xl shadow-shopee-500/25">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-xl shadow-shopee-500/25">
             <ShoppingBag className="h-7 w-7" />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">

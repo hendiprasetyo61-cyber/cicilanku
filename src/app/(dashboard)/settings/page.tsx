@@ -4,17 +4,14 @@ import React, { useState, useEffect } from 'react';
 import {
   Bell,
   Clock,
-  ShieldCheck,
   Smartphone,
   Download,
-  RotateCcw,
   Check,
   AlertCircle,
   Send,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { useCicilanStore } from '@/lib/store';
 
 export default function SettingsPage() {
@@ -23,6 +20,9 @@ export default function SettingsPage() {
   const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
   const [testNotificationSent, setTestNotificationSent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // State baru untuk menampilkan pesan modern pengganti alert()
+  const [pushMessage, setPushMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -43,8 +43,9 @@ export default function SettingsPage() {
   }
 
   const handleRequestPushPermission = async () => {
+    setPushMessage(null); // Reset pesan
     if (!('Notification' in window)) {
-      alert('Browser kamu tidak mendukung Web Push Notification.');
+      setPushMessage({ type: 'error', text: 'Browser kamu tidak mendukung Web Push Notification.' });
       return;
     }
 
@@ -53,18 +54,23 @@ export default function SettingsPage() {
       setPushStatus(permission as any);
 
       if (permission === 'granted') {
-        // Registrasikan service worker jika belum
         if ('serviceWorker' in navigator) {
-          const reg = await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.register('/sw.js');
           new Notification('CicilanKu Aktif!', {
             body: 'Kamu akan menerima notifikasi pengingat jatuh tempo Shopee PayLater tepat waktu.',
             icon: '/icon-192.png',
           });
+          setPushMessage({ type: 'success', text: 'Notifikasi berhasil diaktifkan!' });
         }
+      } else if (permission === 'denied') {
+        setPushMessage({ type: 'error', text: 'Izin ditolak. Silakan aktifkan via pengaturan browser kamu.' });
       }
     } catch (e: any) {
-      alert(`Gagal mengaktifkan push: ${e?.message}`);
+      setPushMessage({ type: 'error', text: `Gagal mengaktifkan push: ${e?.message}` });
     }
+
+    // Hilangkan pesan setelah 4 detik
+    setTimeout(() => setPushMessage(null), 4000);
   };
 
   const handleSendTestPush = () => {
@@ -80,11 +86,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleToggle = (key: keyof typeof settings) => {
+  // Ubah menjadi async/await agar validasi simpannya akurat
+  const handleToggle = async (key: keyof typeof settings) => {
     const updated = { [key]: !settings[key] };
-    updateSettings(updated);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 1500);
+    try {
+      await updateSettings(updated);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (error) {
+      console.error('Gagal menyimpan pengaturan:', error);
+    }
   };
 
   const handleExportBackup = () => {
@@ -199,7 +210,11 @@ export default function SettingsPage() {
               min={0}
               max={23}
               value={settings.reminder_hour}
-              onChange={(e) => updateSettings({ reminder_hour: Number(e.target.value) })}
+              onChange={(e) => {
+                updateSettings({ reminder_hour: Number(e.target.value) });
+                setSaveSuccess(true);
+                setTimeout(() => setSaveSuccess(false), 2000);
+              }}
               className="w-14 p-1.5 rounded-lg border border-slate-200 text-center font-bold"
             />
             <span>:</span>
@@ -208,7 +223,11 @@ export default function SettingsPage() {
               min={0}
               max={59}
               value={settings.reminder_minute}
-              onChange={(e) => updateSettings({ reminder_minute: Number(e.target.value) })}
+              onChange={(e) => {
+                updateSettings({ reminder_minute: Number(e.target.value) });
+                setSaveSuccess(true);
+                setTimeout(() => setSaveSuccess(false), 2000);
+              }}
               className="w-14 p-1.5 rounded-lg border border-slate-200 text-center font-bold"
             />
             <span className="text-slate-500 font-medium">WIB</span>
@@ -228,19 +247,18 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-800">Status Izin Notifikasi:</span>
               <span
-                className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                  pushStatus === 'granted'
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${pushStatus === 'granted'
                     ? 'bg-emerald-100 text-emerald-700'
                     : pushStatus === 'denied'
-                    ? 'bg-rose-100 text-rose-700'
-                    : 'bg-amber-100 text-amber-700'
-                }`}
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-amber-100 text-amber-700'
+                  }`}
               >
                 {pushStatus === 'granted'
                   ? 'Aktif (Diizinkan)'
                   : pushStatus === 'denied'
-                  ? 'Diblokir oleh Browser'
-                  : 'Belum Diaktifkan'}
+                    ? 'Diblokir oleh Browser'
+                    : 'Belum Diaktifkan'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
@@ -263,6 +281,23 @@ export default function SettingsPage() {
             )}
           </div>
         </div>
+
+        {/* Notifikasi Inline Pengganti Alert */}
+        {pushMessage && (
+          <div
+            className={`p-3 text-xs rounded-xl font-medium flex items-start gap-2 transition-all ${pushMessage.type === 'success'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-rose-50 text-rose-700 border border-rose-200'
+              }`}
+          >
+            {pushMessage.type === 'success' ? (
+              <Check className="h-4 w-4 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            )}
+            <p className="leading-relaxed">{pushMessage.text}</p>
+          </div>
+        )}
       </Card>
 
       {/* 3. Manajemen Data & Backup */}

@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   ArrowDownRight,
   CreditCard,
-  Calendar,
   ExternalLink,
   Copy,
   Check,
@@ -20,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Progress } from '@/components/ui/Progress';
+import { Modal } from '@/components/ui/Modal'; // Ditambahkan untuk konfirmasi modern
 import { useCicilanStore } from '@/lib/store';
 import { calculateLoanBalance } from '@/lib/calculations/balance';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
@@ -32,12 +32,21 @@ export default function LoanDetailPage() {
   const router = useRouter();
   const loanId = params.id as string;
 
-  const { loans, deleteLoan, deleteDebtorPayment, isLoaded } = useCicilanStore();
+  // Ekstrak refreshData agar halaman otomatis update
+  const { loans, deleteLoan, deleteDebtorPayment, isLoaded, refreshData } = useCicilanStore();
 
   const [activeTab, setActiveTab] = useState<'jadwal' | 'setoran'>('jadwal');
   const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
   const [isDebtorPaymentOpen, setIsDebtorPaymentOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // State untuk Modal Hapus Pinjaman Utama
+  const [isDeleteLoanModalOpen, setIsDeleteLoanModalOpen] = useState(false);
+  const [isDeletingLoan, setIsDeletingLoan] = useState(false);
+
+  // State untuk Modal Hapus Setoran Teman
+  const [paymentToDelete, setPaymentToDelete] = useState<{ id: string; jumlah: number } | null>(null);
+  const [isDeletingPayment, setIsDeletingPayment] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -71,10 +80,32 @@ export default function LoanDetailPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleDeleteLoan = () => {
-    if (confirm(`Apakah kamu yakin ingin menghapus pinjaman "${loan.nama_barang}"? Semua jadwal cicilan dan data setoran akan terhapus.`)) {
-      deleteLoan(loan.id);
+  // Fungsi Eksekusi Hapus Pinjaman (Dipanggil dari Modal)
+  const confirmDeleteLoan = async () => {
+    try {
+      setIsDeletingLoan(true);
+      await deleteLoan(loan.id);
+      setIsDeleteLoanModalOpen(false);
       router.push('/loans');
+    } catch (error) {
+      console.error('Gagal menghapus pinjaman:', error);
+    } finally {
+      setIsDeletingLoan(false);
+    }
+  };
+
+  // Fungsi Eksekusi Hapus Setoran Teman (Dipanggil dari Modal)
+  const confirmDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    try {
+      setIsDeletingPayment(true);
+      await deleteDebtorPayment(loan.id, paymentToDelete.id);
+      setPaymentToDelete(null);
+      refreshData(); // Sinkronisasi otomatis
+    } catch (error) {
+      console.error('Gagal menghapus setoran:', error);
+    } finally {
+      setIsDeletingPayment(false);
     }
   };
 
@@ -118,7 +149,7 @@ export default function LoanDetailPage() {
             Catat Setoran Teman
           </Button>
           <button
-            onClick={handleDeleteLoan}
+            onClick={() => setIsDeleteLoanModalOpen(true)} // Membuka modal kustom
             className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition"
             title="Hapus Pinjaman Ini"
           >
@@ -190,9 +221,8 @@ export default function LoanDetailPage() {
         {/* Posisi Kas / Status Talangan Pemilik */}
         <Card
           hoverable
-          className={`border-l-4 ${
-            summary.isNombok ? 'border-l-rose-500 bg-rose-50/20' : 'border-l-emerald-500 bg-emerald-50/20'
-          }`}
+          className={`border-l-4 ${summary.isNombok ? 'border-l-rose-500 bg-rose-50/20' : 'border-l-emerald-500 bg-emerald-50/20'
+            }`}
         >
           <span className="text-xs font-semibold text-slate-500 block uppercase">Status Talangan Kamu</span>
           <div className={`text-2xl font-extrabold mt-1 ${summary.isNombok ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -219,21 +249,19 @@ export default function LoanDetailPage() {
       <div className="flex border-b border-slate-200">
         <button
           onClick={() => setActiveTab('jadwal')}
-          className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${
-            activeTab === 'jadwal'
+          className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${activeTab === 'jadwal'
               ? 'border-shopee-500 text-shopee-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           Jadwal Cicilan Shopee ({loan.installments?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('setoran')}
-          className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${
-            activeTab === 'setoran'
+          className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${activeTab === 'setoran'
               ? 'border-shopee-500 text-shopee-600'
               : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+            }`}
         >
           Riwayat Setoran Teman ({loan.debtor_payments?.length || 0})
         </button>
@@ -270,7 +298,6 @@ export default function LoanDetailPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(loan.installments || []).map((inst) => {
-                  const sisa = Math.max(0, inst.total_tagihan - inst.sudah_dibayar);
                   return (
                     <tr key={inst.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3 px-4 font-bold text-slate-800">Ke-{inst.cicilan_ke}</td>
@@ -360,11 +387,7 @@ export default function LoanDetailPage() {
                   </div>
 
                   <button
-                    onClick={() => {
-                      if (confirm(`Hapus catatan setoran ${formatRupiah(payment.jumlah)}?`)) {
-                        deleteDebtorPayment(loan.id, payment.id);
-                      }
-                    }}
+                    onClick={() => setPaymentToDelete({ id: payment.id, jumlah: payment.jumlah })} // Mengaktifkan Modal
                     className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                     title="Hapus setoran ini"
                   >
@@ -382,12 +405,13 @@ export default function LoanDetailPage() {
         </Card>
       )}
 
-      {/* Modals */}
+      {/* Modals Input Pembayaran */}
       <ShopeePayModal
         isOpen={!!selectedInstallment}
         onClose={() => setSelectedInstallment(null)}
         installment={selectedInstallment}
         namaBarang={loan.nama_barang}
+        onSuccess={() => refreshData()} // Memastikan data ter-refresh otomatis
       />
 
       <DebtorPaymentModal
@@ -395,7 +419,71 @@ export default function LoanDetailPage() {
         onClose={() => setIsDebtorPaymentOpen(false)}
         loans={loans}
         defaultLoanId={loan.id}
+        onSuccess={() => refreshData()} // Memastikan data ter-refresh otomatis
       />
+
+      {/* Modal Konfirmasi Hapus Pinjaman Keseluruhan */}
+      <Modal
+        isOpen={isDeleteLoanModalOpen}
+        onClose={() => !isDeletingLoan && setIsDeleteLoanModalOpen(false)}
+        title="Konfirmasi Hapus Pinjaman"
+        description=""
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Apakah kamu yakin ingin menghapus transaksi <strong>{loan.nama_barang}</strong> secara permanen?
+            <br /><br />
+            Tindakan ini akan menghapus seluruh data jadwal cicilan, setoran dari teman, dan riwayat pembayaran ke Shopee yang terkait dengan pinjaman ini.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteLoanModalOpen(false)}
+              disabled={isDeletingLoan}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={confirmDeleteLoan}
+              isLoading={isDeletingLoan}
+            >
+              Ya, Hapus Permanen
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Konfirmasi Hapus Setoran Teman */}
+      <Modal
+        isOpen={!!paymentToDelete}
+        onClose={() => !isDeletingPayment && setPaymentToDelete(null)}
+        title="Hapus Riwayat Setoran"
+        description=""
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Apakah kamu yakin ingin menghapus data setoran sebesar <strong>{paymentToDelete ? formatRupiah(paymentToDelete.jumlah) : ''}</strong>?
+            Saldo "Sisa Utang Teman" akan otomatis dihitung ulang.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <Button
+              variant="outline"
+              onClick={() => setPaymentToDelete(null)}
+              disabled={isDeletingPayment}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={confirmDeletePayment}
+              isLoading={isDeletingPayment}
+            >
+              Ya, Hapus Setoran
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+// 1. KITA MENAMBAHKAN useEffect DI SINI
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Eye, Calculator, CheckCircle2 } from 'lucide-react';
@@ -17,9 +18,10 @@ import { GeneratedSchedule, InterestMethod, AdminAllocation } from '@/lib/types'
 
 export default function NewLoanPage() {
   const router = useRouter();
-  const { debtors, createLoan, isLoaded } = useCicilanStore();
 
-  const [debtorId, setDebtorId] = useState<string>(debtors[0]?.id || '');
+  const { debtors, createLoan, isLoaded, refreshData } = useCicilanStore();
+
+  const [debtorId, setDebtorId] = useState<string>('');
   const [namaBarang, setNamaBarang] = useState<string>('');
   const [orderIdShopee, setOrderIdShopee] = useState<string>('');
   const [hargaPokok, setHargaPokok] = useState<number | ''>(3000000);
@@ -36,6 +38,15 @@ export default function NewLoanPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 2. KODE BARU: Memaksa memori terisi otomatis saat data teman sudah ada
+  useEffect(() => {
+    if (debtors.length > 0 && !debtorId) {
+      setDebtorId(debtors[0].id);
+      // Hapus error jika sebelumnya sempat muncul
+      setErrors((prev) => ({ ...prev, debtorId: '' }));
+    }
+  }, [debtors, debtorId]);
 
   const calculateLiveSummary = (): GeneratedSchedule | null => {
     if (!hargaPokok || Number(hargaPokok) <= 0 || !tenorBulan || tenorBulan <= 0) {
@@ -67,11 +78,14 @@ export default function NewLoanPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    if (!debtorId && debtors.length > 0) {
+    // Kita gunakan nilai fallback untuk berjaga-jaga
+    const finalDebtorId = debtorId || (debtors.length > 0 ? debtors[0].id : '');
+
+    if (!finalDebtorId) {
       newErrors.debtorId = 'Pilih teman yang meminjam limit';
     }
     if (!namaBarang.trim()) {
@@ -94,8 +108,8 @@ export default function NewLoanPage() {
 
     try {
       setIsLoading(true);
-      const created = createLoan({
-        debtorId: debtorId || debtors[0].id,
+      const created = await createLoan({
+        debtorId: finalDebtorId,
         namaBarang: namaBarang.trim(),
         orderIdShopee: orderIdShopee.trim() || undefined,
         hargaPokok: Number(hargaPokok),
@@ -169,7 +183,7 @@ export default function NewLoanPage() {
           ) : (
             <Select
               label="Pilih Teman"
-              value={debtorId || debtors[0]?.id || ''}
+              value={debtorId || ''}
               onChange={(e) => {
                 setDebtorId(e.target.value);
                 setErrors((prev) => ({ ...prev, debtorId: '' }));
@@ -315,7 +329,7 @@ export default function NewLoanPage() {
 
         {/* Live Simulation Card */}
         {liveSchedule && (
-          <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-5 text-white shadow-xl">
+          <div className="rounded-2xl bg-linear-to-br from-slate-900 to-slate-800 p-5 text-white shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
                 <Calculator className="h-4 w-4" />
@@ -382,7 +396,8 @@ export default function NewLoanPage() {
       <DebtorModal
         isOpen={isDebtorModalOpen}
         onClose={() => setIsDebtorModalOpen(false)}
-        onSuccess={(savedDebtor) => {
+        onSuccess={async (savedDebtor) => {
+          await refreshData();
           setDebtorId(savedDebtor.id);
         }}
       />

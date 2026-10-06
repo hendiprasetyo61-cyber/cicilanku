@@ -41,7 +41,7 @@ export const PWAInstallPrompt: React.FC = () => {
   if (!isInstallable || isDismissed) return null;
 
   return (
-    <div className="my-4 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-shopee-600 p-4 text-white shadow-lg shadow-orange-500/20">
+    <div className="my-4 rounded-2xl bg-linear-to-r from-orange-500 via-rose-500 to-shopee-600 p-4 text-white shadow-lg shadow-orange-500/20">
       <div className="flex items-start justify-between gap-3">
         <div className="flex gap-3">
           <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-xs flex items-center justify-center shrink-0">

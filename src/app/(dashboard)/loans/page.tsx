@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, CreditCard, ChevronRight, Share2, Users } from 'lucide-react';
+import { Plus, Search, CreditCard, ChevronRight, Share2, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +15,9 @@ export default function LoansPage() {
   const { loans, isLoaded } = useCicilanStore();
   const [filterStatus, setFilterStatus] = useState<'semua' | 'aktif' | 'lunas'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // State untuk melacak ID pinjaman mana yang link-nya sedang disalin
+  const [copiedLoanId, setCopiedLoanId] = useState<string | null>(null);
 
   if (!isLoaded) {
     return (
@@ -32,6 +35,18 @@ export default function LoansPage() {
       (loan.order_id_shopee || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
+
+  // Fungsi modern untuk menyalin link tanpa harus membuka tab baru
+  const handleCopyShareLink = (loanId: string, shareToken: string) => {
+    const shareUrl = `${window.location.origin}/share/${shareToken}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLoanId(loanId);
+
+    // Kembalikan ke ikon awal setelah 2 detik
+    setTimeout(() => {
+      setCopiedLoanId(null);
+    }, 2000);
+  };
 
   return (
     <div className="space-y-5">
@@ -60,7 +75,7 @@ export default function LoansPage() {
             placeholder="Cari barang, nama teman, nomor pesanan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-xs text-slate-900 focus:border-shopee-500 focus:outline-none focus:ring-2 focus:ring-shopee-500/20"
           />
         </div>
 
@@ -69,11 +84,10 @@ export default function LoansPage() {
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${
-                filterStatus === status
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${filterStatus === status
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+                }`}
             >
               {status}
             </button>
@@ -96,6 +110,7 @@ export default function LoansPage() {
         <div className="space-y-3.5">
           {filteredLoans.map((loan) => {
             const summary = calculateLoanBalance(loan, loan.installments || [], loan.debtor_payments || []);
+            const isCopied = copiedLoanId === loan.id;
 
             return (
               <Card key={loan.id} hoverable className="p-4 sm:p-5">
@@ -154,14 +169,17 @@ export default function LoansPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Link
-                        href={`/share/${loan.share_token}`}
-                        target="_blank"
-                        className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 hover:text-shopee-600 hover:border-shopee-200 transition"
-                        title="Bagikan link ringkasan ke teman"
+                      <button
+                        onClick={() => handleCopyShareLink(loan.id, loan.share_token)}
+                        className={`rounded-xl border p-2 transition ${isCopied
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                          : 'border-slate-200 bg-white text-slate-600 hover:text-shopee-600 hover:border-shopee-200'
+                          }`}
+                        title="Salin link rincian tagihan"
                       >
-                        <Share2 className="h-4 w-4" />
-                      </Link>
+                        {isCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                      </button>
+
                       <Link href={`/loans/${loan.id}`}>
                         <Button size="sm" variant="outline">
                           Detail Pinjaman <ChevronRight className="h-3.5 w-3.5 ml-1" />

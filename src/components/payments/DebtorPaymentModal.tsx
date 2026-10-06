@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { PaylaterLoan } from '@/lib/types';
 import { formatRupiah } from '@/lib/formatters';
-import { recordDebtorPayment } from '@/lib/store';
+// 1. Ubah bagian import ini
+import { useCicilanStore } from '@/lib/store';
 
 export interface DebtorPaymentModalProps {
   isOpen: boolean;
@@ -24,6 +25,9 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
   defaultLoanId,
   onSuccess,
 }) => {
+  // 2. Ambil fungsi dari store di sini
+  const { recordDebtorPayment } = useCicilanStore();
+
   const activeLoans = loans.filter((l) => l.status === 'aktif' || l.id === defaultLoanId);
   const selectedLoanIdInitial = defaultLoanId || (activeLoans[0]?.id ?? '');
 
@@ -42,7 +46,8 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
   const totalSetorTeman = (currentLoan?.debtor_payments || []).reduce((acc, p) => acc + p.jumlah, 0);
   const sisaUtangTeman = currentLoan ? Math.max(0, currentLoan.total_tagihan - totalSetorTeman) : 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 3. Tambahkan 'async' di sini
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLoanId && !currentLoan?.id) {
       setError('Pilih pinjaman yang dicicil');
@@ -55,7 +60,8 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
 
     try {
       setIsLoading(true);
-      recordDebtorPayment({
+      // 4. Tambahkan 'await' di sini
+      await recordDebtorPayment({
         loanId: selectedLoanId || currentLoan!.id,
         jumlah: Math.round(Number(jumlah)),
         tanggalTerima,
