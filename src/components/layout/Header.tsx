@@ -23,6 +23,7 @@ export const Header: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Mengambil data user saat komponen dimuat
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -41,6 +42,7 @@ export const Header: React.FC = () => {
 
     fetchUser();
 
+    // Menutup dropdown jika user mengklik area di luar dropdown
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsProfileOpen(false);
@@ -52,7 +54,7 @@ export const Header: React.FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    // 1. Tambahkan konfirmasi logout di sini
+    // Menambahkan konfirmasi sebelum logout
     if (!window.confirm('Apakah kamu yakin ingin keluar dari akun?')) {
       return;
     }
@@ -72,33 +74,31 @@ export const Header: React.FC = () => {
   const initial = displayName.charAt(0).toUpperCase() || 'C';
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md overflow-hidden">
-      {/* 2. Kurangi padding di HP (px-3 sm:px-4) agar lebih lega */}
-      <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-3 sm:px-4">
+    // Class overflow-hidden DIHAPUS di sini agar dropdown bisa muncul dengan normal
+    <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
 
-        {/* Brand Logo - Disesuaikan agar tidak melebar di HP */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
-          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200 shrink-0">
-            <ShoppingBag className="h-4 w-4 sm:h-5 sm:w-5" />
+        {/* Brand Logo - Dikembalikan utuh seperti desain asli Anda */}
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
+            <ShoppingBag className="h-5 w-5" />
           </div>
-          <div className="shrink-0">
+          <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900">
+              <span className="text-base font-extrabold tracking-tight text-slate-900">
                 Cicilan<span className="text-shopee-500">Ku</span>
               </span>
-              {/* Label SPayLater disembunyikan di HP terkecil agar hemat ruang */}
-              <span className="hidden sm:inline-block rounded-md bg-shopee-50 px-1.5 py-0.5 text-[10px] font-bold text-shopee-600 border border-shopee-200/60">
+              <span className="rounded-md bg-shopee-50 px-1.5 py-0.5 text-[10px] font-bold text-shopee-600 border border-shopee-200/60">
                 SPayLater
               </span>
             </div>
-            {/* Teks "Bantu Teman" disembunyikan di layar HP agar header tidak geser */}
-            <p className="hidden sm:block text-[10px] text-slate-500 font-medium">Bantu Teman, Bebas Pusing</p>
+            <p className="text-[10px] text-slate-500 font-medium">Bantu Teman, Bebas Pusing</p>
           </div>
         </Link>
 
         {/* Action Buttons & Profile Dropdown */}
-        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-          {/* Tombol Pinjaman Baru dijamin sembunyi di HP menggunakan "hidden sm:block" */}
+        <div className="flex items-center gap-2.5">
+          {/* Tombol Pinjaman Baru hanya disembunyikan di HP menggunakan "hidden sm:block" */}
           <Link href="/loans/new" className="hidden sm:block">
             <Button size="sm" className="shadow-sm">
               <Plus className="h-4 w-4 mr-1" />
@@ -127,9 +127,9 @@ export const Header: React.FC = () => {
               <ChevronDown className="h-3.5 w-3.5 text-slate-400 mr-1 hidden sm:block" />
             </button>
 
-            {/* Dropdown Menu Modal - Diberikan batas max-w agar tidak melebihi lebar layar HP */}
+            {/* Dropdown Menu Modal */}
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-150 z-50 origin-top-right">
+              <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-150 z-50">
                 {/* User Info Header */}
                 <div className="p-3 border-b border-slate-100">
                   <div className="flex items-center justify-between">
