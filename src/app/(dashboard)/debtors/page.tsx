@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Plus, Users, Phone, MessageSquare, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal'; // Import komponen Modal
+import { Modal } from '@/components/ui/Modal';
 import { useCicilanStore } from '@/lib/store';
 import { DebtorModal } from '@/components/debtors/DebtorModal';
 import { calculateLoanBalance } from '@/lib/calculations/balance';
@@ -12,14 +12,11 @@ import { formatRupiah } from '@/lib/formatters';
 import { Debtor } from '@/lib/types';
 
 export default function DebtorsPage() {
-  // Tambahkan refreshData ke destructuring
   const { debtors, loans, deleteDebtor, isLoaded, refreshData } = useCicilanStore();
 
-  // State untuk form Tambah/Edit Teman
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [debtorToEdit, setDebtorToEdit] = useState<Debtor | null>(null);
 
-  // State untuk Modal Konfirmasi Hapus
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [debtorToDelete, setDebtorToDelete] = useState<Debtor | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -42,13 +39,11 @@ export default function DebtorsPage() {
     setIsModalOpen(true);
   };
 
-  // Hanya membuka modal konfirmasi, bukan langsung menghapus
   const handleDeleteClick = (debtor: Debtor) => {
     setDebtorToDelete(debtor);
     setIsDeleteModalOpen(true);
   };
 
-  // Fungsi eksekusi hapus yang dipanggil dari dalam Modal Konfirmasi
   const confirmDelete = async () => {
     if (!debtorToDelete) return;
     try {
@@ -56,7 +51,7 @@ export default function DebtorsPage() {
       await deleteDebtor(debtorToDelete.id);
       setIsDeleteModalOpen(false);
       setDebtorToDelete(null);
-      refreshData(); // Sinkronisasi UI tanpa refresh browser
+      refreshData();
     } catch (error) {
       console.error('Gagal menghapus data:', error);
     } finally {
@@ -64,12 +59,10 @@ export default function DebtorsPage() {
     }
   };
 
-  // Cek apakah teman yang akan dihapus masih memiliki pinjaman aktif
   const hasLoans = debtorToDelete ? loans.some((l) => l.debtor_id === debtorToDelete.id) : false;
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Kelola Teman Peminjam</h1>
@@ -111,6 +104,23 @@ export default function DebtorsPage() {
             const sisaKewajiban = Math.max(0, totalUtang - totalSetor);
             const cleanPhone = debtor.no_hp ? debtor.no_hp.replace(/[^0-9]/g, '') : '';
             const waNumber = cleanPhone.startsWith('0') ? `62${cleanPhone.slice(1)}` : cleanPhone;
+
+            // Logika untuk menyusun teks pesan WhatsApp
+            const activeLoans = debtorLoans.filter((l) => l.status === 'aktif');
+            const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+            let waText = `Halo *${debtor.nama_teman}*, ini rincian tagihan SPayLater kamu ya.\n\n*Total Sisa Utang: ${formatRupiah(sisaKewajiban)}*\n\n`;
+
+            if (activeLoans.length > 0) {
+              waText += `Klik link di bawah ini untuk melihat detail jadwal & riwayat pembayaran:\n`;
+              activeLoans.forEach((l) => {
+                waText += `- ${l.nama_barang}: ${baseUrl}/share/${l.share_token}\n`;
+              });
+            } else {
+              waText += `Semua pinjaman saat ini sudah lunas. Terima kasih!\n`;
+            }
+
+            const waHref = `https://wa.me/${waNumber}?text=${encodeURIComponent(waText)}`;
 
             return (
               <Card key={debtor.id} hoverable className="flex flex-col justify-between">
@@ -166,22 +176,20 @@ export default function DebtorsPage() {
                 <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                   {cleanPhone ? (
                     <a
-                      href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
-                        `Halo ${debtor.nama_teman}, ini rincian cicilan SPayLater kamu ya.`
-                      )}`}
+                      href={waHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
                     >
                       <MessageSquare className="h-3.5 w-3.5" />
-                      Kirim Pesan WhatsApp
+                      Kirim Rincian WA
                     </a>
                   ) : (
                     <span className="text-slate-400">Tidak ada nomor HP</span>
                   )}
 
                   <span className="font-semibold text-slate-500">
-                    {debtorLoans.filter((l) => l.status === 'aktif').length} aktif
+                    {activeLoans.length} aktif
                   </span>
                 </div>
               </Card>
@@ -190,18 +198,15 @@ export default function DebtorsPage() {
         </div>
       )}
 
-      {/* Modal Form Tambah/Edit Teman */}
       <DebtorModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         debtorToEdit={debtorToEdit}
         onSuccess={() => {
-          // Kini tidak perlu window.location.reload()
           refreshData();
         }}
       />
 
-      {/* Modal Konfirmasi Hapus Kustom */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
