@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Data subscription tidak lengkap' }, { status: 400 });
     }
 
-    const supabase = createClientServer();
+    const supabase = await createClientServer();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
