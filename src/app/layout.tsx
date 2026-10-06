@@ -36,6 +36,10 @@ export default function RootLayout({
   return (
     <html lang="id">
       <head>
+        {/* Tambahkan baris link manifest ini */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#ee4d2d" />
+
         <meta name="application-name" content="CicilanKu" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
