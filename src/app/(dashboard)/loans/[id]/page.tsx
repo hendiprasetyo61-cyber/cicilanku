@@ -19,7 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Progress } from '@/components/ui/Progress';
-import { Modal } from '@/components/ui/Modal'; // Ditambahkan untuk konfirmasi modern
+import { Modal } from '@/components/ui/Modal';
 import { useCicilanStore } from '@/lib/store';
 import { calculateLoanBalance } from '@/lib/calculations/balance';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
@@ -32,7 +32,6 @@ export default function LoanDetailPage() {
   const router = useRouter();
   const loanId = params.id as string;
 
-  // Ekstrak refreshData agar halaman otomatis update
   const { loans, deleteLoan, deleteDebtorPayment, isLoaded, refreshData } = useCicilanStore();
 
   const [activeTab, setActiveTab] = useState<'jadwal' | 'setoran'>('jadwal');
@@ -40,11 +39,9 @@ export default function LoanDetailPage() {
   const [isDebtorPaymentOpen, setIsDebtorPaymentOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // State untuk Modal Hapus Pinjaman Utama
   const [isDeleteLoanModalOpen, setIsDeleteLoanModalOpen] = useState(false);
   const [isDeletingLoan, setIsDeletingLoan] = useState(false);
 
-  // State untuk Modal Hapus Setoran Teman
   const [paymentToDelete, setPaymentToDelete] = useState<{ id: string; jumlah: number } | null>(null);
   const [isDeletingPayment, setIsDeletingPayment] = useState(false);
 
@@ -80,7 +77,6 @@ export default function LoanDetailPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Fungsi Eksekusi Hapus Pinjaman (Dipanggil dari Modal)
   const confirmDeleteLoan = async () => {
     try {
       setIsDeletingLoan(true);
@@ -94,14 +90,13 @@ export default function LoanDetailPage() {
     }
   };
 
-  // Fungsi Eksekusi Hapus Setoran Teman (Dipanggil dari Modal)
   const confirmDeletePayment = async () => {
     if (!paymentToDelete) return;
     try {
       setIsDeletingPayment(true);
       await deleteDebtorPayment(loan.id, paymentToDelete.id);
       setPaymentToDelete(null);
-      refreshData(); // Sinkronisasi otomatis
+      refreshData();
     } catch (error) {
       console.error('Gagal menghapus setoran:', error);
     } finally {
@@ -111,17 +106,17 @@ export default function LoanDetailPage() {
 
   return (
     <div className="space-y-5">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* Top Header & Actions - Diperbaiki menggunakan flex-wrap */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
           <Link
             href="/loans"
-            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 transition"
+            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 transition shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{loan.nama_barang}</h1>
               <Badge status={loan.status} />
             </div>
@@ -132,25 +127,26 @@ export default function LoanDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Buttons - flex-wrap agar tidak berjejal di HP */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleCopyShareLink}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-shopee-600 transition shadow-2xs"
           >
             {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
-            {copiedLink ? 'Link Tersalin!' : 'Bagikan Link ke Teman'}
+            {copiedLink ? 'Tersalin!' : 'Bagikan Link'}
           </button>
           <Button
             size="sm"
             onClick={() => setIsDebtorPaymentOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-sm whitespace-nowrap"
           >
             <ArrowDownRight className="h-4 w-4 mr-1" />
-            Catat Setoran Teman
+            Setoran Teman
           </Button>
           <button
-            onClick={() => setIsDeleteLoanModalOpen(true)} // Membuka modal kustom
-            className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition"
+            onClick={() => setIsDeleteLoanModalOpen(true)}
+            className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition shrink-0"
             title="Hapus Pinjaman Ini"
           >
             <Trash2 className="h-4 w-4" />
@@ -158,20 +154,21 @@ export default function LoanDetailPage() {
         </div>
       </div>
 
-      {/* Share Link Banner */}
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-indigo-50/70 p-3.5 border border-indigo-100 text-xs">
-        <div className="flex items-center gap-2 text-indigo-900">
-          <Share2 className="h-4 w-4 text-indigo-600 shrink-0" />
-          <span>
-            Halaman publik ringkasan untuk teman:{' '}
-            <strong className="underline underline-offset-2 font-mono">{shareUrl}</strong>
-          </span>
+      {/* Share Link Banner - Diperbaiki untuk Mobile dengan overflow-hidden dan truncate */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-indigo-50/70 p-3.5 border border-indigo-100 text-xs overflow-hidden">
+        <div className="flex items-start sm:items-center gap-2 text-indigo-900 min-w-0 w-full">
+          <Share2 className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0 w-full">
+            <span className="shrink-0">Halaman ringkasan teman:</span>
+            {/* Class truncate memastikan URL panjang terpotong menjadi "..." */}
+            <strong className="underline underline-offset-2 font-mono truncate">{shareUrl}</strong>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center justify-end shrink-0 self-end sm:self-auto">
           <Link
             href={`/share/${loan.share_token}`}
             target="_blank"
-            className="font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-0.5"
+            className="font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 bg-indigo-100/50 hover:bg-indigo-200 px-3 py-1.5 rounded-lg transition"
           >
             Buka <ExternalLink className="h-3 w-3" />
           </Link>
@@ -179,7 +176,7 @@ export default function LoanDetailPage() {
       </div>
 
       {/* 3 Metric Cards Finansial Pinjaman */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total & Sisa Utang Teman */}
         <Card hoverable className="border-l-4 border-l-shopee-500">
           <span className="text-xs font-semibold text-slate-500 block uppercase">Sisa Utang Teman</span>
@@ -245,13 +242,13 @@ export default function LoanDetailPage() {
         </Card>
       </div>
 
-      {/* Tabs Menu: Jadwal Tagihan Shopee vs Riwayat Setoran Teman */}
-      <div className="flex border-b border-slate-200">
+      {/* Tabs Menu: Jadwal Tagihan Shopee vs Riwayat Setoran Teman - Ditambahkan overflow-x-auto untuk responsifitas */}
+      <div className="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
         <button
           onClick={() => setActiveTab('jadwal')}
           className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${activeTab === 'jadwal'
-              ? 'border-shopee-500 text-shopee-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-shopee-500 text-shopee-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Jadwal Cicilan Shopee ({loan.installments?.length || 0})
@@ -259,8 +256,8 @@ export default function LoanDetailPage() {
         <button
           onClick={() => setActiveTab('setoran')}
           className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${activeTab === 'setoran'
-              ? 'border-shopee-500 text-shopee-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            ? 'border-shopee-500 text-shopee-600'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
           Riwayat Setoran Teman ({loan.debtor_payments?.length || 0})
@@ -270,20 +267,20 @@ export default function LoanDetailPage() {
       {/* TAB 1: Jadwal Cicilan Shopee */}
       {activeTab === 'jadwal' && (
         <Card className="p-0 overflow-hidden">
-          <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Jadwal Pembayaran Shopee PayLater</h3>
               <p className="text-xs text-slate-500">
                 Setiap pembayaran ke Shopee akan otomatis memperbarui status cicilan dan saldo talangan kas.
               </p>
             </div>
-            <span className="text-xs text-slate-600 font-semibold bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+            <span className="text-xs text-slate-600 font-semibold bg-white px-2.5 py-1 rounded-lg border border-slate-200 self-start md:self-auto shrink-0">
               Tenor {loan.tenor_bulan} Bulan • Bunga {loan.bunga_persen_per_bulan}% ({loan.metode_bunga})
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs whitespace-nowrap">
               <thead className="bg-slate-100/70 text-slate-700 font-semibold border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4">Bulan</th>
@@ -348,7 +345,7 @@ export default function LoanDetailPage() {
             <Button
               size="sm"
               onClick={() => setIsDebtorPaymentOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap self-start sm:self-auto"
             >
               <ArrowDownRight className="h-4 w-4 mr-1" />
               Tambah Setoran Teman
@@ -364,13 +361,13 @@ export default function LoanDetailPage() {
           ) : (
             <div className="divide-y divide-slate-100">
               {(loan.debtor_payments || []).map((payment) => (
-                <div key={payment.id} className="py-3 flex items-center justify-between gap-3">
+                <div key={payment.id} className="py-3 flex items-start sm:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-extrabold text-slate-900">{formatRupiah(payment.jumlah)}</span>
                       <Badge status={payment.metode} />
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-1">
                       <span>Diterima: {formatTanggalIndo(payment.tanggal_terima)}</span>
                       {payment.catatan && <span className="text-slate-700 font-medium">"{payment.catatan}"</span>}
                       {payment.bukti_url && (
@@ -378,7 +375,7 @@ export default function LoanDetailPage() {
                           href={payment.bukti_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-shopee-600 underline font-semibold flex items-center gap-0.5"
+                          className="text-shopee-600 underline font-semibold flex items-center gap-0.5 mt-0.5 sm:mt-0"
                         >
                           Bukti Transfer <ExternalLink className="h-3 w-3" />
                         </a>
@@ -387,8 +384,8 @@ export default function LoanDetailPage() {
                   </div>
 
                   <button
-                    onClick={() => setPaymentToDelete({ id: payment.id, jumlah: payment.jumlah })} // Mengaktifkan Modal
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                    onClick={() => setPaymentToDelete({ id: payment.id, jumlah: payment.jumlah })}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition shrink-0"
                     title="Hapus setoran ini"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -411,7 +408,7 @@ export default function LoanDetailPage() {
         onClose={() => setSelectedInstallment(null)}
         installment={selectedInstallment}
         namaBarang={loan.nama_barang}
-        onSuccess={() => refreshData()} // Memastikan data ter-refresh otomatis
+        onSuccess={() => refreshData()}
       />
 
       <DebtorPaymentModal
@@ -419,7 +416,7 @@ export default function LoanDetailPage() {
         onClose={() => setIsDebtorPaymentOpen(false)}
         loans={loans}
         defaultLoanId={loan.id}
-        onSuccess={() => refreshData()} // Memastikan data ter-refresh otomatis
+        onSuccess={() => refreshData()}
       />
 
       {/* Modal Konfirmasi Hapus Pinjaman Keseluruhan */}
