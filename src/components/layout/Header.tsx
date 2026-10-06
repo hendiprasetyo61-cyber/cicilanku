@@ -14,7 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal'; // 1. Import komponen Modal
+import { Modal } from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
 
 export const Header: React.FC = () => {
@@ -24,7 +24,6 @@ export const Header: React.FC = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 2. Tambahkan state untuk mengontrol Modal Logout
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -56,13 +55,11 @@ export const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 3. Fungsi untuk membuka modal dan menutup dropdown
   const handleLogoutClick = () => {
     setIsLogoutModalOpen(true);
     setIsProfileOpen(false);
   };
 
-  // 4. Fungsi eksekusi logout yang sesungguhnya
   const confirmLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -84,24 +81,28 @@ export const Header: React.FC = () => {
       <header className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
 
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
+          {/* Logo & Brand Text - Disesuaikan agar teks slogan selalu tampil */}
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/25 group-hover:scale-105 transition-transform duration-200">
               <ShoppingBag className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-extrabold tracking-tight text-slate-900">
                   Cicilan<span className="text-shopee-500">Ku</span>
                 </span>
-                <span className="rounded-md bg-shopee-50 px-1.5 py-0.5 text-[10px] font-bold text-shopee-600 border border-shopee-200/60">
+                <span className="rounded-md bg-shopee-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold text-shopee-600 border border-shopee-200/60 shrink-0">
                   SPayLater
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium hidden sm:block">Bantu Teman, Bebas Pusing</p>
+              {/* Menghapus 'hidden sm:block' dan menambahkan 'truncate' agar aman di HP terkecil */}
+              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate mt-0.5">
+                Bantu Teman, Bebas Pusing
+              </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 shrink-0">
             <Link href="/loans/new" className="hidden sm:block">
               <Button size="sm" className="shadow-sm">
                 <Plus className="h-4 w-4 mr-1" />
@@ -171,7 +172,7 @@ export const Header: React.FC = () => {
 
                   <div className="pt-1.5 border-t border-slate-100">
                     <button
-                      onClick={handleLogoutClick} // 5. Ubah onClick ke handleLogoutClick
+                      onClick={handleLogoutClick}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 font-semibold text-xs transition text-left"
                     >
                       <LogOut className="h-4 w-4 text-rose-500" />
@@ -185,7 +186,6 @@ export const Header: React.FC = () => {
         </div>
       </header>
 
-      {/* 6. Tambahkan Modal Konfirmasi Keluar Akun */}
       <Modal
         isOpen={isLogoutModalOpen}
         onClose={() => !isLoggingOut && setIsLogoutModalOpen(false)}
