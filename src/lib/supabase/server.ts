@@ -1,8 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export function createClientServer() {
-  const cookieStore = cookies();
+export async function createClientServer() {
+  // Mendapatkan cookies secara asinkron (mendukung Next.js versi terbaru)
+  const cookieStore = await cookies();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder';
@@ -16,15 +17,15 @@ export function createClientServer() {
         try {
           cookieStore.set({ name, value, ...options });
         } catch {
-          // The `set` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing user sessions.
+          // Metode `set` dipanggil dari Server Component.
+          // Bisa diabaikan jika middleware sudah menyegarkan sesi.
         }
       },
       remove(name: string, options: CookieOptions) {
         try {
           cookieStore.set({ name, value: '', ...options });
         } catch {
-          // The `delete` method was called from a Server Component.
+          // Metode `remove` dipanggil dari Server Component.
         }
       },
     },
