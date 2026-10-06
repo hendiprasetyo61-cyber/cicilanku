@@ -120,7 +120,7 @@ export default function PublicSharePage() {
         {/* Brand Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-tr from-shopee-600 to-shopee-400 text-white shadow-md shadow-shopee-500/20">
               <ShoppingBag className="h-5 w-5" />
             </div>
             <div>
@@ -132,7 +132,7 @@ export default function PublicSharePage() {
           </div>
 
           <div className="flex items-center gap-2 print:hidden">
-            <Button size="sm" variant="outline" onClick={handleExportCSV} className="text-xs">
+            <Button size="sm" variant="outline" onClick={handleExportCSV} className="text-xs hidden sm:flex">
               <FileSpreadsheet className="h-3.5 w-3.5 mr-1 text-emerald-600" />
               Unduh CSV
             </Button>
@@ -144,7 +144,7 @@ export default function PublicSharePage() {
         </div>
 
         {/* Main Card */}
-        <div className="rounded-3xl bg-white p-6 shadow-xl border border-slate-200/80 space-y-6">
+        <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl border border-slate-200/80 space-y-6">
           {/* Header Info */}
           <div className="border-b border-slate-100 pb-5">
             <div className="flex items-center justify-between">
@@ -218,46 +218,49 @@ export default function PublicSharePage() {
               </div>
             ) : (
               <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100/80 text-slate-700 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="py-2.5 px-3">Tanggal</th>
-                      <th className="py-2.5 px-3">Metode</th>
-                      <th className="py-2.5 px-3">Catatan</th>
-                      <th className="py-2.5 px-3 text-right">Jumlah</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {(loan.debtor_payments || []).map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/60">
-                        <td className="py-2.5 px-3 text-slate-700 font-medium">
-                          {formatTanggalIndo(p.tanggal_terima)}
+                {/* Tambahkan overflow-x-auto di sini agar tabel bisa di-scroll horizontal di HP */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100/80 text-slate-700 font-semibold border-b border-slate-200 whitespace-nowrap">
+                      <tr>
+                        <th className="py-2.5 px-3 min-w-25">Tanggal</th>
+                        <th className="py-2.5 px-3">Metode</th>
+                        <th className="py-2.5 px-3 min-w-30">Catatan</th>
+                        <th className="py-2.5 px-3 text-right min-w-25">Jumlah</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(loan.debtor_payments || []).map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50/60">
+                          <td className="py-2.5 px-3 text-slate-700 font-medium whitespace-nowrap">
+                            {formatTanggalIndo(p.tanggal_terima)}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="capitalize px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                              {p.metode}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-500 italic min-w-30">
+                            {p.catatan || '-'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 whitespace-nowrap">
+                            {formatRupiah(p.jumlah)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-slate-50/80 font-bold border-t border-slate-200 text-xs">
+                      <tr>
+                        <td colSpan={3} className="py-2.5 px-3 text-slate-700 whitespace-nowrap">
+                          Total Disetor:
                         </td>
-                        <td className="py-2.5 px-3">
-                          <span className="capitalize px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
-                            {p.metode}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-500 italic">
-                          {p.catatan || '-'}
-                        </td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                          {formatRupiah(p.jumlah)}
+                        <td className="py-2.5 px-3 text-right text-emerald-600 font-black whitespace-nowrap">
+                          {formatRupiah(summary.totalSetorTeman)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-slate-50/80 font-bold border-t border-slate-200 text-xs">
-                    <tr>
-                      <td colSpan={3} className="py-2.5 px-3 text-slate-700">
-                        Total Disetor:
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-600 font-black">
-                        {formatRupiah(summary.totalSetorTeman)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
             )}
           </div>
