@@ -2,7 +2,7 @@ import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-    // Memanggil logika penjaga yang kita buat di langkah 1
+    // Memanggil logika penjaga sesi Supabase setiap kali ada halaman yang dibuka
     return await updateSession(request);
 }
 
@@ -10,9 +10,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
     matcher: [
         /*
-         * Mengecualikan jalur internal Next.js agar aplikasi tidak menjadi lambat:
-         * - _next/static (file statis)
-         * - _next/image (gambar)
+         * Mengecualikan jalur internal Next.js agar performa aplikasi tetap cepat:
+         * - _next/static (file statis CSS/JS)
+         * - _next/image (gambar yang dioptimasi)
          * - favicon.ico (ikon situs)
          * - api (API routes, biarkan API mengurus keamanannya sendiri)
          */
