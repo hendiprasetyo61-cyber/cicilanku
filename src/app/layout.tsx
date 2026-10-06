@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
+// 1. Mengimpor komponen PWA yang sudah kamu buat sebelumnya
+import { PwaRegistry } from '@/components/PwaRegistry';
+import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
+
 export const metadata: Metadata = {
   title: 'CicilanKu — Catat Cicilan Shopee PayLater untuk Teman',
   description: 'Aplikasi pencatat cicilan Shopee PayLater yang dipakai teman dengan nominal setoran fleksibel, kalkulasi talangan kas, dan reminder otomatis.',
@@ -39,8 +43,21 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
+
+      {/* 2. Struktur Body yang rapi */}
       <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-orange-100 selection:text-shopee-600">
+
+        {/* 3. Menjalankan service worker di latar belakang */}
+        <PwaRegistry />
+
+        {/* 4. Menampilkan banner ajakan install (dibungkus container agar posisinya pas di tengah layar) */}
+        <div className="container mx-auto max-w-5xl px-4">
+          <PWAInstallPrompt />
+        </div>
+
+        {/* 5. Konten utama aplikasi (Halaman, Header, dll) */}
         {children}
+
       </body>
     </html>
   );
