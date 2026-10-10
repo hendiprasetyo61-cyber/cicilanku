@@ -2,23 +2,26 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, ArrowDownRight, Trash2, Search, ExternalLink, Calendar, Filter } from 'lucide-react';
+import { Plus, ArrowDownRight, Trash2, Search, ExternalLink, Calendar, Filter, Edit2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Modal } from '@/components/ui/Modal'; // Import komponen Modal
+import { Modal } from '@/components/ui/Modal';
 import { useCicilanStore } from '@/lib/store';
 import { DebtorPaymentModal } from '@/components/payments/DebtorPaymentModal';
 import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
 
 export default function PaymentsPage() {
-  // Tambahkan refreshData
   const { loans, deleteDebtorPayment, isLoaded, refreshData } = useCicilanStore();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMetode, setFilterMetode] = useState<'semua' | 'transfer' | 'tunai'>('semua');
 
-  // State untuk Modal Hapus
+  // State untuk Modal Edit
+  const [paymentToEdit, setPaymentToEdit] = useState<any>(null);
+
+  // State untuk Modal Konfirmasi Hapus
   const [paymentToDelete, setPaymentToDelete] = useState<{
     id: string;
     loanId: string;
@@ -79,14 +82,26 @@ export default function PaymentsPage() {
 
   const totalFilteredJumlah = filteredPayments.reduce((acc, p) => acc + p.jumlah, 0);
 
-  // Fungsi Eksekusi Hapus Setoran (Dipanggil dari Modal)
+  // Fungsi untuk membuka modal Edit
+  const handleEditClick = (payment: any) => {
+    setPaymentToEdit(payment);
+    setIsModalOpen(true);
+  };
+
+  // Fungsi untuk membuka modal Tambah Baru
+  const handleCreateNewClick = () => {
+    setPaymentToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  // Fungsi Eksekusi Hapus Setoran
   const confirmDelete = async () => {
     if (!paymentToDelete) return;
     try {
       setIsDeleting(true);
       await deleteDebtorPayment(paymentToDelete.loanId, paymentToDelete.id);
       setPaymentToDelete(null);
-      refreshData(); // Otomatis perbarui tabel dan total kas
+      refreshData();
     } catch (error) {
       console.error('Gagal menghapus setoran:', error);
     } finally {
@@ -104,7 +119,8 @@ export default function PaymentsPage() {
             Semua pembayaran uang yang telah disetor teman dengan nominal dan jadwal fleksibel.
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+        {/* Tombol Catat Setoran Baru */}
+        <Button size="sm" onClick={handleCreateNewClick} className="bg-emerald-600 hover:bg-emerald-700">
           <ArrowDownRight className="h-4 w-4 mr-1" />
           Catat Setoran Baru
         </Button>
@@ -147,8 +163,8 @@ export default function PaymentsPage() {
               key={metode}
               onClick={() => setFilterMetode(metode)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${filterMetode === metode
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               {metode}
@@ -219,6 +235,15 @@ export default function PaymentsPage() {
                     </a>
                   )}
 
+                  {/* Tombol Edit Baru */}
+                  <button
+                    onClick={() => handleEditClick(p)}
+                    className="p-2 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition"
+                    title="Edit setoran ini"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+
                   <button
                     onClick={() => setPaymentToDelete({
                       id: p.id,
@@ -238,15 +263,19 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Modal Catat Setoran */}
+      {/* Modal Catat & Edit Setoran */}
       <DebtorPaymentModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setPaymentToEdit(null);
+        }}
         loans={loans}
-        onSuccess={() => refreshData()} // Memastikan data langsung ter-refresh otomatis
+        paymentToEdit={paymentToEdit} // Mengirim data yang ingin di-edit ke dalam Modal
+        onSuccess={() => refreshData()}
       />
 
-      {/* Modal Konfirmasi Hapus Kustom */}
+      {/* Modal Konfirmasi Hapus */}
       <Modal
         isOpen={!!paymentToDelete}
         onClose={() => !isDeleting && setPaymentToDelete(null)}

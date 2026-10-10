@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { PaylaterLoan } from '@/lib/types';
 import { formatRupiah } from '@/lib/formatters';
-// 1. Ubah bagian import ini
 import { useCicilanStore } from '@/lib/store';
+// Kita mengimpor client Supabase untuk melakukan fungsi Update/Edit langsung
+import { createClient } from '@/lib/supabase/client';
 
 export interface DebtorPaymentModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export interface DebtorPaymentModalProps {
   loans: PaylaterLoan[];
   defaultLoanId?: string;
   onSuccess?: () => void;
+  // 1. Menambahkan properti paymentToEdit agar modal bisa menerima data dari luar
+  paymentToEdit?: any;
 }
 
 export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
@@ -24,8 +27,8 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
   loans,
   defaultLoanId,
   onSuccess,
+  paymentToEdit,
 }) => {
-  // 2. Ambil fungsi dari store di sini
   const { recordDebtorPayment } = useCicilanStore();
 
   const activeLoans = loans.filter((l) => l.status === 'aktif' || l.id === defaultLoanId);
@@ -40,13 +43,39 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // 2. Mengisi form otomatis jika sedang dalam mode Edit
+  useEffect(() => {
+    if (paymentToEdit && isOpen) {
+      setSelectedLoanId(paymentToEdit.loanId);
+      setJumlah(paymentToEdit.jumlah);
+      setTanggalTerima(paymentToEdit.tanggalTerima);
+      setMetode(paymentToEdit.metode);
+      setCatatan(paymentToEdit.catatan || '');
+      setBuktiUrl(paymentToEdit.buktiUrl || '');
+    } else if (!paymentToEdit && isOpen) {
+      // Jika Tambah Baru, pastikan form kosong
+      setSelectedLoanId(selectedLoanIdInitial);
+      setJumlah('');
+      setTanggalTerima(new Date().toISOString().split('T')[0]);
+      setMetode('transfer');
+      setCatatan('');
+      setBuktiUrl('');
+      setError('');
+    }
+  }, [paymentToEdit, isOpen, selectedLoanIdInitial]);
+
   const currentLoan = loans.find((l) => l.id === (selectedLoanId || selectedLoanIdInitial));
 
-  // Hitung sisa utang saat ini
+  // 3. Menghitung sisa utang yang akurat saat Edit
   const totalSetorTeman = (currentLoan?.debtor_payments || []).reduce((acc, p) => acc + p.jumlah, 0);
-  const sisaUtangTeman = currentLoan ? Math.max(0, currentLoan.total_tagihan - totalSetorTeman) : 0;
 
-  // 3. Tambahkan 'async' di sini
+  // Jika sedang edit, jumlah lama tidak boleh ikut mengurangi sisa utang agar perhitungannya logis
+  const setorTemanDisesuaikan = paymentToEdit
+    ? totalSetorTeman - paymentToEdit.jumlah
+    : totalSetorTeman;
+
+  const sisaUtangTeman = currentLoan ? Math.max(0, currentLoan.total_tagihan - setorTemanDisesuaikan) : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLoanId && !currentLoan?.id) {
@@ -60,20 +89,36 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
 
     try {
       setIsLoading(true);
-      // 4. Tambahkan 'await' di sini
-      await recordDebtorPayment({
-        loanId: selectedLoanId || currentLoan!.id,
-        jumlah: Math.round(Number(jumlah)),
-        tanggalTerima,
-        metode,
-        catatan,
-        buktiUrl,
-      });
+
+      if (paymentToEdit) {
+        // --- MODE EDIT: Memperbarui data langsung ke Supabase ---
+        const supabase = createClient();
+        const { error: updateError } = await supabase
+          .from('debtor_payments')
+          .update({
+            loan_id: selectedLoanId || currentLoan!.id,
+            jumlah: Math.round(Number(jumlah)),
+            tanggal_terima: tanggalTerima,
+            metode,
+            catatan,
+            bukti_url: buktiUrl,
+          })
+          .eq('id', paymentToEdit.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // --- MODE TAMBAH BARU: Menyimpan via Store ---
+        await recordDebtorPayment({
+          loanId: selectedLoanId || currentLoan!.id,
+          jumlah: Math.round(Number(jumlah)),
+          tanggalTerima,
+          metode,
+          catatan,
+          buktiUrl,
+        });
+      }
 
       setIsLoading(false);
-      setJumlah('');
-      setCatatan('');
-      setBuktiUrl('');
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -86,7 +131,8 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Catat Setoran dari Teman"
+      // Judul berubah otomatis menyesuaikan Mode
+      title={paymentToEdit ? "Edit Setoran Teman" : "Catat Setoran dari Teman"}
       description="Teman mencicil dengan nominal bebas dan tanggal fleksibel."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -112,7 +158,7 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
             </div>
             <div className="flex justify-between items-center text-xs mb-1">
               <span className="text-slate-500 font-medium">Sudah Disetor Teman:</span>
-              <span className="font-semibold text-emerald-600">{formatRupiah(totalSetorTeman)}</span>
+              <span className="font-semibold text-emerald-600">{formatRupiah(setorTemanDisesuaikan)}</span>
             </div>
             <div className="flex justify-between items-center text-xs pt-1 border-t border-slate-200/60">
               <span className="text-slate-700 font-bold">Sisa Utang Teman:</span>
@@ -201,7 +247,7 @@ export const DebtorPaymentModal: React.FC<DebtorPaymentModalProps> = ({
             Batal
           </Button>
           <Button type="submit" isLoading={isLoading} className="bg-emerald-600 hover:bg-emerald-700">
-            Simpan Setoran
+            {paymentToEdit ? 'Simpan Perubahan' : 'Simpan Setoran'}
           </Button>
         </div>
       </form>
