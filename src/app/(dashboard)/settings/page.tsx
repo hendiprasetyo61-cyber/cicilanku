@@ -20,6 +20,7 @@ import { createClient } from '@/lib/supabase/client';
 type PushStatus = NotificationPermission | 'unsupported';
 type ReminderToggleKey = 'remind_h3' | 'remind_h1' | 'remind_h0';
 
+// Fungsi untuk mengecek dukungan browser terhadap notifikasi PWA
 function isNotificationSupported() {
   return (
     typeof window !== 'undefined' &&
@@ -28,8 +29,8 @@ function isNotificationSupported() {
   );
 }
 
-// Android Chrome TIDAK mengizinkan `new Notification()`.
-// Notifikasi harus dibuat lewat service worker.
+// PERBAIKAN UTAMA: Android Chrome TIDAK mengizinkan `new Notification()`.
+// Notifikasi PWA wajib dipanggil melalui Service Worker.
 async function showLocalNotification(title: string, options: NotificationOptions) {
   const existing = await navigator.serviceWorker.getRegistration();
   if (!existing) {
@@ -87,6 +88,7 @@ export default function SettingsPage() {
       setPushStatus(permission);
 
       if (permission === 'granted') {
+        // Menggunakan showLocalNotification alih-alih new Notification()
         await showLocalNotification('CicilanKu Aktif!', {
           body: 'Kamu akan menerima notifikasi pengingat jatuh tempo Shopee PayLater tepat waktu.',
           icon: '/icon-192.png',
@@ -119,6 +121,7 @@ export default function SettingsPage() {
     }
 
     try {
+      // Menggunakan showLocalNotification agar tidak error di Android Chrome
       await showLocalNotification('Pengingat Tagihan SPayLater (H-3)', {
         body: 'Cicilan Samsung Galaxy A15 sebesar Rp 500.000 jatuh tempo 3 hari lagi. Budi belum transfer.',
         icon: '/icon-192.png',
