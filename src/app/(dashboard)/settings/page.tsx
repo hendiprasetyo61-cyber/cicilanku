@@ -92,7 +92,7 @@ export default function SettingsPage() {
         await showLocalNotification('CicilanKu Aktif!', {
           body: 'Kamu akan menerima notifikasi pengingat jatuh tempo Shopee PayLater tepat waktu.',
           icon: '/icon-192.png',
-          badge: '/icon-192.png',
+          badge: '/badge.png',
         });
         setPushMessage({ type: 'success', text: 'Notifikasi berhasil diaktifkan!' });
       } else if (permission === 'denied') {
@@ -125,7 +125,7 @@ export default function SettingsPage() {
       await showLocalNotification('Pengingat Tagihan SPayLater (H-3)', {
         body: 'Cicilan Samsung Galaxy A15 sebesar Rp 500.000 jatuh tempo 3 hari lagi. Budi belum transfer.',
         icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        badge: '/badge.png',
         tag: 'tes-notifikasi',
       });
       setTestNotificationSent(true);

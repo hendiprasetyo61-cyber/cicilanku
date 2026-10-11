@@ -1,11 +1,13 @@
 // CicilanKu Progressive Web App Service Worker
-const CACHE_NAME = 'cicilanku-v3';
+// Naikkan versi cache agar browser mendownload sw.js yang baru
+const CACHE_NAME = 'cicilanku-v4';
 
-// Hanya aset statis murni. Jangan masukkan rute yang bergantung login.
+// Tambahkan /badge.png agar ikut tersimpan di memori (cache) HP pengguna
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
+  '/badge.png',
 ];
 
 // 1. Install Event (fault-tolerant)
@@ -72,7 +74,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 4. Web Push Notification Event
+// 4. Web Push Notification Event (Menerima Notifikasi dari Server/Sistem)
 self.addEventListener('push', (event) => {
   let data = {};
   if (event.data) {
@@ -86,8 +88,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Pengingat CicilanKu';
   const options = {
     body: data.body || 'Ada tagihan cicilan SPayLater yang mendekati jatuh tempo.',
-    icon: data.icon || '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: data.icon || '/icon-192.png', // Ikon utama (berwarna)
+    badge: '/badge.png',                // Ikon status bar (wajib putih-transparan)
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/',
@@ -101,7 +103,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// 5. Notification Click Event
+// 5. Notification Click Event (Aksi saat notifikasi ditekan)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
