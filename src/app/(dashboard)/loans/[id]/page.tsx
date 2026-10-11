@@ -14,6 +14,8 @@ import {
   ExternalLink,
   Copy,
   Check,
+  Edit2,
+  XCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +28,7 @@ import { formatRupiah, formatTanggalIndo } from '@/lib/formatters';
 import { ShopeePayModal } from '@/components/loans/ShopeePayModal';
 import { DebtorPaymentModal } from '@/components/payments/DebtorPaymentModal';
 import { Installment } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoanDetailPage() {
   const params = useParams();
@@ -39,11 +42,15 @@ export default function LoanDetailPage() {
   const [isDebtorPaymentOpen, setIsDebtorPaymentOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // State untuk mode edit setoran teman
+  const [paymentToEdit, setPaymentToEdit] = useState<any>(null);
+
   const [isDeleteLoanModalOpen, setIsDeleteLoanModalOpen] = useState(false);
   const [isDeletingLoan, setIsDeletingLoan] = useState(false);
 
   const [paymentToDelete, setPaymentToDelete] = useState<{ id: string; jumlah: number } | null>(null);
   const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+  const [isCancelingInstallment, setIsCancelingInstallment] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -104,9 +111,53 @@ export default function LoanDetailPage() {
     }
   };
 
+  const handleCancelShopeePayment = async (installmentId: string | undefined) => {
+    if (!installmentId) return;
+    const confirm = window.confirm("Yakin ingin membatalkan pembayaran cicilan ini dan mengubah statusnya kembali menjadi Belum Lunas?");
+    if (!confirm) return;
+
+    try {
+      setIsCancelingInstallment(true);
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('loan_installments')
+        .update({
+          status: 'belum_lunas',
+          sudah_dibayar: 0
+        })
+        .eq('id', installmentId);
+
+      if (error) throw error;
+      refreshData();
+    } catch (error) {
+      console.error('Gagal membatalkan pembayaran:', error);
+      alert('Terjadi kesalahan saat membatalkan pembayaran.');
+    } finally {
+      setIsCancelingInstallment(false);
+    }
+  };
+
+  const handleEditPayment = (payment: any) => {
+    setPaymentToEdit({
+      id: payment.id,
+      loanId: loan.id,
+      jumlah: payment.jumlah,
+      tanggalTerima: payment.tanggal_terima,
+      metode: payment.metode,
+      catatan: payment.catatan,
+      buktiUrl: payment.bukti_url,
+    });
+    setIsDebtorPaymentOpen(true);
+  };
+
+  const handleCreateNewPayment = () => {
+    setPaymentToEdit(null);
+    setIsDebtorPaymentOpen(true);
+  };
+
   return (
     <div className="space-y-5">
-      {/* Top Header & Actions - Diperbaiki menggunakan flex-wrap */}
+      {/* Top Header & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
           <Link
@@ -127,7 +178,7 @@ export default function LoanDetailPage() {
           </div>
         </div>
 
-        {/* Buttons - flex-wrap agar tidak berjejal di HP */}
+        {/* Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleCopyShareLink}
@@ -136,14 +187,25 @@ export default function LoanDetailPage() {
             {copiedLink ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
             {copiedLink ? 'Tersalin!' : 'Bagikan Link'}
           </button>
+
           <Button
             size="sm"
-            onClick={() => setIsDebtorPaymentOpen(true)}
+            onClick={handleCreateNewPayment}
             className="bg-emerald-600 hover:bg-emerald-700 shadow-sm whitespace-nowrap"
           >
             <ArrowDownRight className="h-4 w-4 mr-1" />
             Setoran Teman
           </Button>
+
+          {/* Tombol Edit: Sekarang diarahkan ke halaman Edit khusus */}
+          <Link
+            href={`/loans/${loan.id}/edit`}
+            className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition shrink-0"
+            title="Edit Detail Pinjaman"
+          >
+            <Edit2 className="h-4 w-4" />
+          </Link>
+
           <button
             onClick={() => setIsDeleteLoanModalOpen(true)}
             className="rounded-xl border border-rose-200 bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 transition shrink-0"
@@ -154,13 +216,12 @@ export default function LoanDetailPage() {
         </div>
       </div>
 
-      {/* Share Link Banner - Diperbaiki untuk Mobile dengan overflow-hidden dan truncate */}
+      {/* Share Link Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-indigo-50/70 p-3.5 border border-indigo-100 text-xs overflow-hidden">
         <div className="flex items-start sm:items-center gap-2 text-indigo-900 min-w-0 w-full">
           <Share2 className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 min-w-0 w-full">
             <span className="shrink-0">Halaman ringkasan teman:</span>
-            {/* Class truncate memastikan URL panjang terpotong menjadi "..." */}
             <strong className="underline underline-offset-2 font-mono truncate">{shareUrl}</strong>
           </div>
         </div>
@@ -187,11 +248,12 @@ export default function LoanDetailPage() {
             Total tagihan: <strong>{formatRupiah(summary.totalTagihanLoan)}</strong>
           </div>
           <div className="mt-2.5">
+            {/* AMAN UNTUK GRAFIK PROGRESS */}
             <Progress
-              value={summary.persentaseSetorTeman}
+              value={Number.isNaN(summary.persentaseSetorTeman) ? 0 : Math.min(100, Math.max(0, summary.persentaseSetorTeman))}
               color="emerald"
               size="sm"
-              sublabel={`Disetor: ${formatRupiah(summary.totalSetorTeman)} (${summary.persentaseSetorTeman}%)`}
+              sublabel={`Disetor: ${formatRupiah(summary.totalSetorTeman)} (${Number.isNaN(summary.persentaseSetorTeman) ? 0 : summary.persentaseSetorTeman}%)`}
             />
           </div>
         </Card>
@@ -206,8 +268,9 @@ export default function LoanDetailPage() {
             Sisa tagihan Shopee: <strong>{formatRupiah(summary.sisaTagihanShopee)}</strong>
           </div>
           <div className="mt-2.5">
+            {/* AMAN UNTUK GRAFIK PROGRESS */}
             <Progress
-              value={summary.persentaseBayarShopee}
+              value={Number.isNaN(summary.persentaseBayarShopee) ? 0 : Math.min(100, Math.max(0, summary.persentaseBayarShopee))}
               color="shopee"
               size="sm"
               sublabel={`${summary.jumlahCicilanLunas} dari ${summary.totalCicilan} cicilan lunas`}
@@ -242,7 +305,7 @@ export default function LoanDetailPage() {
         </Card>
       </div>
 
-      {/* Tabs Menu: Jadwal Tagihan Shopee vs Riwayat Setoran Teman - Ditambahkan overflow-x-auto untuk responsifitas */}
+      {/* Tabs Menu */}
       <div className="flex border-b border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
         <button
           onClick={() => setActiveTab('jadwal')}
@@ -318,9 +381,19 @@ export default function LoanDetailPage() {
                             Catat Bayar Shopee
                           </Button>
                         ) : (
-                          <span className="text-[11px] font-bold text-emerald-600 flex items-center justify-end gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Lunas
-                          </span>
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-[11px] font-bold text-emerald-600 flex items-center justify-end gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Lunas
+                            </span>
+                            <button
+                              onClick={() => handleCancelShopeePayment(inst.id)}
+                              disabled={isCancelingInstallment}
+                              className="text-slate-400 hover:text-rose-600 transition"
+                              title="Batalkan pembayaran (Jadikan Belum Lunas)"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -344,7 +417,7 @@ export default function LoanDetailPage() {
             </div>
             <Button
               size="sm"
-              onClick={() => setIsDebtorPaymentOpen(true)}
+              onClick={handleCreateNewPayment}
               className="bg-emerald-600 hover:bg-emerald-700 whitespace-nowrap self-start sm:self-auto"
             >
               <ArrowDownRight className="h-4 w-4 mr-1" />
@@ -383,13 +456,23 @@ export default function LoanDetailPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setPaymentToDelete({ id: payment.id, jumlah: payment.jumlah })}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition shrink-0"
-                    title="Hapus setoran ini"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleEditPayment(payment)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 transition"
+                      title="Edit setoran ini"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      onClick={() => setPaymentToDelete({ id: payment.id, jumlah: payment.jumlah })}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                      title="Hapus setoran ini"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -413,9 +496,13 @@ export default function LoanDetailPage() {
 
       <DebtorPaymentModal
         isOpen={isDebtorPaymentOpen}
-        onClose={() => setIsDebtorPaymentOpen(false)}
+        onClose={() => {
+          setIsDebtorPaymentOpen(false);
+          setPaymentToEdit(null);
+        }}
         loans={loans}
         defaultLoanId={loan.id}
+        paymentToEdit={paymentToEdit}
         onSuccess={() => refreshData()}
       />
 

@@ -143,14 +143,16 @@ export default function LoansPage() {
                     {/* Progress Pelunasan */}
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
                       <Progress
-                        value={summary.persentaseSetorTeman}
+                        // Memastikan grafik aman dari NaN
+                        value={Number.isNaN(summary.persentaseSetorTeman) ? 0 : Math.min(100, Math.max(0, summary.persentaseSetorTeman))}
                         label="Setoran Teman"
                         color="emerald"
                         size="sm"
                         sublabel={`${formatRupiah(summary.totalSetorTeman)} dari ${formatRupiah(summary.totalTagihanLoan)}`}
                       />
                       <Progress
-                        value={summary.persentaseBayarShopee}
+                        // Memastikan grafik aman dari NaN
+                        value={Number.isNaN(summary.persentaseBayarShopee) ? 0 : Math.min(100, Math.max(0, summary.persentaseBayarShopee))}
                         label="Bayar ke Shopee"
                         color="shopee"
                         size="sm"

@@ -85,7 +85,8 @@ export const ShopeePayModal: React.FC<ShopeePayModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Catat Pembayaran ke Shopee"
-      description={`Cicilan ke-${installment.cicilan_ke} • ${namaBarang || 'Barang'}`}
+      // Perbaikan penulisan string agar aman dan tidak error
+      description={`Cicilan ke-${installment.cicilan_ke} — ${namaBarang || 'Barang'}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="rounded-xl bg-orange-50/70 p-3.5 border border-orange-200/60">
