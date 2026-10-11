@@ -7,14 +7,24 @@ const STATIC_ASSETS = [
   '/icon-512.png',
 ];
 
-// 1. Install Event
+// 1. Install Event (Diperbarui menjadi Fault-Tolerant)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      console.log('Service Worker: Caching assets...');
+      // Menggunakan map dan catch agar satu error tidak menggagalkan seluruh proses
+      return Promise.all(
+        STATIC_ASSETS.map((asset) => {
+          return cache.add(asset).catch((err) => {
+            console.error(`Gagal melakukan cache pada aset: ${asset}`, err);
+            // Tetap resolve agar instalasi Service Worker berlanjut
+            return Promise.resolve();
+          });
+        })
+      );
     })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // Memaksa SW baru untuk segera aktif
 });
 
 // 2. Activate Event - Cleanup Old Caches
