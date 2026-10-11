@@ -76,6 +76,11 @@ export default function LoanDetailPage() {
   }
 
   const summary = calculateLoanBalance(loan, loan.installments || [], loan.debtor_payments || []);
+
+  // PERBAIKAN: Mengekstrak perlindungan persentase agar kode HTML (JSX) di bawah lebih rapi
+  const safePctSetor = Math.max(0, Math.min(100, Number(summary.persentaseSetorTeman) || 0));
+  const safePctShopee = Math.max(0, Math.min(100, Number(summary.persentaseBayarShopee) || 0));
+
   const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/share/${loan.share_token}` : `/share/${loan.share_token}`;
 
   const handleCopyShareLink = () => {
@@ -197,7 +202,7 @@ export default function LoanDetailPage() {
             Setoran Teman
           </Button>
 
-          {/* Tombol Edit: Sekarang diarahkan ke halaman Edit khusus */}
+          {/* Tombol Edit */}
           <Link
             href={`/loans/${loan.id}/edit`}
             className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50 hover:text-indigo-600 transition shrink-0"
@@ -248,12 +253,12 @@ export default function LoanDetailPage() {
             Total tagihan: <strong>{formatRupiah(summary.totalTagihanLoan)}</strong>
           </div>
           <div className="mt-2.5">
-            {/* AMAN UNTUK GRAFIK PROGRESS */}
+            {/* PERBAIKAN: Memanggil variabel aman dan membulatkan angka di sublabel */}
             <Progress
-              value={Number.isNaN(summary.persentaseSetorTeman) ? 0 : Math.min(100, Math.max(0, summary.persentaseSetorTeman))}
+              value={safePctSetor}
               color="emerald"
               size="sm"
-              sublabel={`Disetor: ${formatRupiah(summary.totalSetorTeman)} (${Number.isNaN(summary.persentaseSetorTeman) ? 0 : summary.persentaseSetorTeman}%)`}
+              sublabel={`Disetor: ${formatRupiah(summary.totalSetorTeman)} (${Math.round(safePctSetor)}%)`}
             />
           </div>
         </Card>
@@ -268,9 +273,9 @@ export default function LoanDetailPage() {
             Sisa tagihan Shopee: <strong>{formatRupiah(summary.sisaTagihanShopee)}</strong>
           </div>
           <div className="mt-2.5">
-            {/* AMAN UNTUK GRAFIK PROGRESS */}
+            {/* PERBAIKAN: Memanggil variabel aman */}
             <Progress
-              value={Number.isNaN(summary.persentaseBayarShopee) ? 0 : Math.min(100, Math.max(0, summary.persentaseBayarShopee))}
+              value={safePctShopee}
               color="shopee"
               size="sm"
               sublabel={`${summary.jumlahCicilanLunas} dari ${summary.totalCicilan} cicilan lunas`}
