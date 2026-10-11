@@ -4,20 +4,43 @@ import { useEffect } from 'react';
 
 export function PwaRegistry() {
     useEffect(() => {
-        // Mengecek apakah browser mendukung Service Worker
+        // 1. Tangkap event install di level global, lalu simpan
+        const onBeforeInstall = (e: Event) => {
+            e.preventDefault();
+            window.__pwaDeferredPrompt = e as BeforeInstallPromptEvent;
+            window.dispatchEvent(new Event('pwa-installable'));
+        };
+
+        const onInstalled = () => {
+            window.__pwaDeferredPrompt = null;
+            window.dispatchEvent(new Event('pwa-installed'));
+        };
+
+        window.addEventListener('beforeinstallprompt', onBeforeInstall);
+        window.addEventListener('appinstalled', onInstalled);
+
+        // 2. Daftarkan service worker
+        const register = () => {
+            navigator.serviceWorker
+                .register('/sw.js', { scope: '/' })
+                .then((reg) => console.log('SW terdaftar:', reg.scope))
+                .catch((err) => console.error('SW gagal didaftarkan:', err));
+        };
+
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/sw.js').then(
-                    function (registration) {
-                        console.log('PWA Service Worker terdaftar dengan sukses!', registration.scope);
-                    },
-                    function (err) {
-                        console.log('PWA Service Worker gagal didaftarkan: ', err);
-                    }
-                );
-            });
+            if (document.readyState === 'complete') {
+                register();
+            } else {
+                window.addEventListener('load', register, { once: true });
+            }
         }
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+            window.removeEventListener('appinstalled', onInstalled);
+            window.removeEventListener('load', register);
+        };
     }, []);
 
-    return null; // Komponen ini berjalan di latar belakang dan tidak menampilkan apa-apa
+    return null;
 }

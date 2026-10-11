@@ -1,58 +1,74 @@
 // CicilanKu Progressive Web App Service Worker
-const CACHE_NAME = 'cicilanku-v1';
+const CACHE_NAME = 'cicilanku-v3';
+
+// Hanya aset statis murni. Jangan masukkan rute yang bergantung login.
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
 ];
 
-// 1. Install Event (Diperbarui menjadi Fault-Tolerant)
+// 1. Install Event (fault-tolerant)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Service Worker: Caching assets...');
-      // Menggunakan map dan catch agar satu error tidak menggagalkan seluruh proses
       return Promise.all(
-        STATIC_ASSETS.map((asset) => {
-          return cache.add(asset).catch((err) => {
+        STATIC_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => {
             console.error(`Gagal melakukan cache pada aset: ${asset}`, err);
-            // Tetap resolve agar instalasi Service Worker berlanjut
             return Promise.resolve();
-          });
-        })
+          })
+        )
       );
     })
   );
-  self.skipWaiting(); // Memaksa SW baru untuk segera aktif
+  self.skipWaiting();
 });
 
-// 2. Activate Event - Cleanup Old Caches
+// 2. Activate Event - hapus cache lama
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
 
-// 3. Fetch Event - Network First with Cache Fallback for navigation
+// 3. Fetch Event - Network First, fallback ke cache
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Biarkan request ke domain lain (Supabase, dll.) lewat tanpa dicegat
+  if (new URL(event.request.url).origin !== self.location.origin) return;
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request).then((response) => {
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then((response) => {
         if (response) return response;
+
         if (event.request.mode === 'navigate') {
-          return caches.match('/');
+          return new Response(
+            '<!doctype html><html lang="id"><head><meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+            '<title>Offline - CicilanKu</title></head>' +
+            '<body style="font-family:sans-serif;text-align:center;padding:50px;">' +
+            '<h1>Anda sedang offline</h1>' +
+            '<p>Periksa koneksi internet Anda lalu coba lagi.</p>' +
+            '</body></html>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
         }
-        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-      });
-    })
+
+        return new Response('Offline', {
+          status: 503,
+          statusText: 'Service Unavailable',
+        });
+      })
+    )
   );
 });
 
@@ -91,18 +107,23 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'close') return;
 
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = new URL(
+    event.notification.data?.url || '/',
+    self.location.origin
+  ).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === targetUrl && 'focus' in client) {
-          return client.focus();
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === targetUrl && 'focus' in client) {
+            return client.focus();
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
   );
 });
