@@ -17,25 +17,44 @@ import { Button } from '@/components/ui/Button';
 import { useCicilanStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 
+type PushStatus = NotificationPermission | 'unsupported';
+type ReminderToggleKey = 'remind_h3' | 'remind_h1' | 'remind_h0';
+
+function isNotificationSupported() {
+  return (
+    typeof window !== 'undefined' &&
+    'Notification' in window &&
+    'serviceWorker' in navigator
+  );
+}
+
+// Android Chrome TIDAK mengizinkan `new Notification()`.
+// Notifikasi harus dibuat lewat service worker.
+async function showLocalNotification(title: string, options: NotificationOptions) {
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (!existing) {
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  }
+  const registration = await navigator.serviceWorker.ready;
+  await registration.showNotification(title, options);
+}
+
 export default function SettingsPage() {
   const { settings, updateSettings, isLoaded, debtors, loans } = useCicilanStore();
 
-  const [pushStatus, setPushStatus] = useState<'default' | 'granted' | 'denied' | 'unsupported'>('default');
+  const [pushStatus, setPushStatus] = useState<PushStatus>('default');
   const [testNotificationSent, setTestNotificationSent] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [pushMessage, setPushMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // State baru untuk proses restore
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (!('Notification' in window)) {
-        setPushStatus('unsupported');
-      } else {
-        setPushStatus(Notification.permission as any);
-      }
+    if (!isNotificationSupported()) {
+      setPushStatus('unsupported');
+    } else {
+      setPushStatus(Notification.permission);
     }
   }, []);
 
@@ -47,61 +66,99 @@ export default function SettingsPage() {
     );
   }
 
+  const flashSaved = () => {
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
+  };
+
   const handleRequestPushPermission = async () => {
     setPushMessage(null);
-    if (!('Notification' in window)) {
-      setPushMessage({ type: 'error', text: 'Browser kamu tidak mendukung Web Push Notification.' });
+
+    if (!isNotificationSupported()) {
+      setPushMessage({
+        type: 'error',
+        text: 'Browser ini tidak mendukung notifikasi. Gunakan Chrome, atau di iPhone pasang dulu aplikasinya ke Layar Utama.',
+      });
       return;
     }
 
     try {
       const permission = await Notification.requestPermission();
-      setPushStatus(permission as any);
+      setPushStatus(permission);
 
       if (permission === 'granted') {
-        if ('serviceWorker' in navigator) {
-          await navigator.serviceWorker.register('/sw.js');
-          new Notification('CicilanKu Aktif!', {
-            body: 'Kamu akan menerima notifikasi pengingat jatuh tempo Shopee PayLater tepat waktu.',
-            icon: '/icon-192.png',
-          });
-          setPushMessage({ type: 'success', text: 'Notifikasi berhasil diaktifkan!' });
-        }
+        await showLocalNotification('CicilanKu Aktif!', {
+          body: 'Kamu akan menerima notifikasi pengingat jatuh tempo Shopee PayLater tepat waktu.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+        });
+        setPushMessage({ type: 'success', text: 'Notifikasi berhasil diaktifkan!' });
       } else if (permission === 'denied') {
-        setPushMessage({ type: 'error', text: 'Izin ditolak. Silakan aktifkan via pengaturan browser kamu.' });
+        setPushMessage({
+          type: 'error',
+          text: 'Izin ditolak. Aktifkan lewat pengaturan situs di browser kamu.',
+        });
+      } else {
+        setPushMessage({ type: 'error', text: 'Izin belum diberikan. Coba tekan tombolnya lagi.' });
       }
-    } catch (e: any) {
-      setPushMessage({ type: 'error', text: `Gagal mengaktifkan push: ${e?.message}` });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Terjadi kesalahan tidak dikenal';
+      console.error('Gagal mengaktifkan notifikasi:', e);
+      setPushMessage({ type: 'error', text: `Gagal mengaktifkan notifikasi: ${msg}` });
     }
 
-    setTimeout(() => setPushMessage(null), 4000);
+    setTimeout(() => setPushMessage(null), 5000);
   };
 
-  const handleSendTestPush = () => {
-    if (Notification.permission === 'granted') {
-      new Notification('Pengingat Tagihan SPayLater (H-3)', {
+  const handleSendTestPush = async () => {
+    setPushMessage(null);
+
+    if (!isNotificationSupported() || Notification.permission !== 'granted') {
+      await handleRequestPushPermission();
+      return;
+    }
+
+    try {
+      await showLocalNotification('Pengingat Tagihan SPayLater (H-3)', {
         body: 'Cicilan Samsung Galaxy A15 sebesar Rp 500.000 jatuh tempo 3 hari lagi. Budi belum transfer.',
         icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'tes-notifikasi',
       });
       setTestNotificationSent(true);
       setTimeout(() => setTestNotificationSent(false), 3000);
-    } else {
-      handleRequestPushPermission();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Terjadi kesalahan tidak dikenal';
+      console.error('Gagal mengirim notifikasi tes:', e);
+      setPushMessage({ type: 'error', text: `Gagal mengirim notifikasi tes: ${msg}` });
+      setTimeout(() => setPushMessage(null), 5000);
     }
   };
 
-  const handleToggle = async (key: keyof typeof settings) => {
-    const updated = { [key]: !settings[key] };
+  const handleToggle = async (key: ReminderToggleKey) => {
     try {
-      await updateSettings(updated);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+      await updateSettings({ [key]: !settings[key] } as Partial<typeof settings>);
+      flashSaved();
     } catch (error) {
       console.error('Gagal menyimpan pengaturan:', error);
     }
   };
 
-  // FUNGSI BARU 1: Download Seluruh Database
+  const handleTimeChange = async (
+    field: 'reminder_hour' | 'reminder_minute',
+    raw: string,
+    max: number
+  ) => {
+    const value = Math.min(max, Math.max(0, Math.floor(Number(raw) || 0)));
+    try {
+      await updateSettings({ [field]: value } as Partial<typeof settings>);
+      flashSaved();
+    } catch (error) {
+      console.error('Gagal menyimpan waktu pengingat:', error);
+    }
+  };
+
+  // Download Seluruh Database
   const handleExportFullBackup = () => {
     const backupData = {
       app: 'CicilanKu',
@@ -126,12 +183,11 @@ export default function SettingsPage() {
     setTimeout(() => setPushMessage(null), 3000);
   };
 
-  // FUNGSI BARU 2: Memulihkan Database (Restore)
+  // Memulihkan Database (Restore)
   const handleRestoreDatabase = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Konfirmasi sebelum melakukan tindakan fatal
     if (!window.confirm('PERINGATAN: Memulihkan data akan menggabungkan data lama ini ke database Anda saat ini. Apakah Anda yakin ingin melanjutkan?')) {
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -233,6 +289,15 @@ export default function SettingsPage() {
     }
   };
 
+  const statusLabel =
+    pushStatus === 'granted'
+      ? 'Aktif (Diizinkan)'
+      : pushStatus === 'denied'
+        ? 'Diblokir oleh Browser'
+        : pushStatus === 'unsupported'
+          ? 'Tidak Didukung'
+          : 'Belum Diaktifkan';
+
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
@@ -312,11 +377,7 @@ export default function SettingsPage() {
               min={0}
               max={23}
               value={settings.reminder_hour}
-              onChange={(e) => {
-                updateSettings({ reminder_hour: Number(e.target.value) });
-                setSaveSuccess(true);
-                setTimeout(() => setSaveSuccess(false), 2000);
-              }}
+              onChange={(e) => handleTimeChange('reminder_hour', e.target.value, 23)}
               className="w-14 p-1.5 rounded-lg border border-slate-200 text-center font-bold"
             />
             <span>:</span>
@@ -325,11 +386,7 @@ export default function SettingsPage() {
               min={0}
               max={59}
               value={settings.reminder_minute}
-              onChange={(e) => {
-                updateSettings({ reminder_minute: Number(e.target.value) });
-                setSaveSuccess(true);
-                setTimeout(() => setSaveSuccess(false), 2000);
-              }}
+              onChange={(e) => handleTimeChange('reminder_minute', e.target.value, 59)}
               className="w-14 p-1.5 rounded-lg border border-slate-200 text-center font-bold"
             />
             <span className="text-slate-500 font-medium">WIB</span>
@@ -351,22 +408,20 @@ export default function SettingsPage() {
               <span
                 className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${pushStatus === 'granted'
                   ? 'bg-emerald-100 text-emerald-700'
-                  : pushStatus === 'denied'
+                  : pushStatus === 'denied' || pushStatus === 'unsupported'
                     ? 'bg-rose-100 text-rose-700'
                     : 'bg-amber-100 text-amber-700'
                   }`}
               >
-                {pushStatus === 'granted'
-                  ? 'Aktif (Diizinkan)'
-                  : pushStatus === 'denied'
-                    ? 'Diblokir oleh Browser'
-                    : 'Belum Diaktifkan'}
+                {statusLabel}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
               {pushStatus === 'granted'
                 ? 'Aplikasi dapat memunculkan popup notifikasi di Android dan Laptop/PC.'
-                : 'Klik tombol untuk mengizinkan aplikasi mengirimkan peringatan jatuh tempo.'}
+                : pushStatus === 'unsupported'
+                  ? 'Browser ini belum mendukung notifikasi. Gunakan Chrome, atau di iPhone pasang aplikasinya ke Layar Utama.'
+                  : 'Klik tombol untuk mengizinkan aplikasi mengirimkan peringatan jatuh tempo.'}
             </p>
           </div>
 
@@ -413,7 +468,6 @@ export default function SettingsPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          {/* Tombol Export */}
           <Button
             size="sm"
             variant="outline"
@@ -424,7 +478,6 @@ export default function SettingsPage() {
             Download Seluruh Database
           </Button>
 
-          {/* Tombol Import (Hidden file input di belakangnya) */}
           <div className="flex-1">
             <input
               type="file"
