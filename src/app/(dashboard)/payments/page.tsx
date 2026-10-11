@@ -163,8 +163,8 @@ export default function PaymentsPage() {
               key={metode}
               onClick={() => setFilterMetode(metode)}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${filterMetode === metode
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               {metode}
@@ -193,7 +193,7 @@ export default function PaymentsPage() {
                 className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 transition"
               >
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-base font-extrabold text-slate-900">{formatRupiah(p.jumlah)}</span>
                     <Badge status={p.metode} />
                   </div>
@@ -223,13 +223,14 @@ export default function PaymentsPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 justify-between sm:justify-end">
+                {/* PERBAIKAN: Mengubah justify-between menjadi justify-end pada layar HP agar tombol merapat ke kanan */}
+                <div className="flex items-center gap-2 justify-end sm:shrink-0 pt-2 border-t border-slate-100 sm:pt-0 sm:border-0">
                   {p.buktiUrl && (
                     <a
                       href={p.buktiUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-indigo-600 font-semibold hover:bg-indigo-50 flex items-center gap-1"
+                      className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs text-indigo-600 font-semibold hover:bg-indigo-50 flex items-center gap-1 mr-auto sm:mr-0"
                     >
                       Bukti <ExternalLink className="h-3 w-3" />
                     </a>
