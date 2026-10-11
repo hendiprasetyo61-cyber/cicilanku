@@ -25,13 +25,13 @@
   "screenshots": [
     {
       "src": "/screenshot-mobile.png",
-      "sizes": "1080x1920",
+      "sizes": "867x1600",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
       "src": "/screenshot-desktop.png",
-      "sizes": "1920x1080",
+      "sizes": "1358x597",
       "type": "image/png",
       "form_factor": "wide"
     }
