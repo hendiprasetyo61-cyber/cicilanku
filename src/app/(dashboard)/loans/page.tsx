@@ -112,6 +112,11 @@ export default function LoansPage() {
             const summary = calculateLoanBalance(loan, loan.installments || [], loan.debtor_payments || []);
             const isCopied = copiedLoanId === loan.id;
 
+            // PERBAIKAN: Logika yang jauh lebih aman untuk memastikan grafiknya berjalan lancar
+            // Mengubah nilai menjadi Angka murni, jika gagal/undefined/NaN, otomatis menjadi 0
+            const safePctSetor = Math.max(0, Math.min(100, Number(summary.persentaseSetorTeman) || 0));
+            const safePctShopee = Math.max(0, Math.min(100, Number(summary.persentaseBayarShopee) || 0));
+
             return (
               <Card key={loan.id} hoverable className="p-4 sm:p-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -140,19 +145,17 @@ export default function LoansPage() {
                       )}
                     </div>
 
-                    {/* Progress Pelunasan */}
+                    {/* Progress Pelunasan (Diperbarui dengan variabel aman) */}
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
                       <Progress
-                        // Memastikan grafik aman dari NaN
-                        value={Number.isNaN(summary.persentaseSetorTeman) ? 0 : Math.min(100, Math.max(0, summary.persentaseSetorTeman))}
+                        value={safePctSetor}
                         label="Setoran Teman"
                         color="emerald"
                         size="sm"
                         sublabel={`${formatRupiah(summary.totalSetorTeman)} dari ${formatRupiah(summary.totalTagihanLoan)}`}
                       />
                       <Progress
-                        // Memastikan grafik aman dari NaN
-                        value={Number.isNaN(summary.persentaseBayarShopee) ? 0 : Math.min(100, Math.max(0, summary.persentaseBayarShopee))}
+                        value={safePctShopee}
                         label="Bayar ke Shopee"
                         color="shopee"
                         size="sm"

@@ -14,7 +14,7 @@ import {
   TrendingDown,
   TrendingUp,
   Share2,
-  Check, // Import Check untuk animasi copy
+  Check,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -28,7 +28,6 @@ import { ShopeePayModal } from '@/components/loans/ShopeePayModal';
 import { Installment, PaylaterLoan } from '@/lib/types';
 
 export default function DashboardPage() {
-  // Tambahkan refreshData
   const { loans, debtors, isLoaded, refreshData } = useCicilanStore();
 
   const [isDebtorPaymentOpen, setIsDebtorPaymentOpen] = useState(false);
@@ -37,7 +36,6 @@ export default function DashboardPage() {
     loan: PaylaterLoan;
   } | null>(null);
 
-  // State untuk Copy Link
   const [copiedLoanId, setCopiedLoanId] = useState<string | null>(null);
 
   if (!isLoaded) {
@@ -85,7 +83,6 @@ export default function DashboardPage() {
     });
   });
 
-  // Urutkan jadwal tagihan dari yang paling mendesak (terlewat / paling dekat)
   allUpcomingInstallments.sort((a, b) => a.diffDays - b.diffDays);
   const nearestInstallment = allUpcomingInstallments[0];
 
@@ -96,10 +93,8 @@ export default function DashboardPage() {
   const pctSetorTeman = totalSemuaTagihan > 0 ? Math.round((totalSemuaSetorTeman / totalSemuaTagihan) * 100) : 0;
   const pctBayarShopee = totalSemuaTagihan > 0 ? Math.round((totalSemuaBayarShopee / totalSemuaTagihan) * 100) : 0;
 
-  // Filter peringatan (telat atau H-3 s.d H-0)
   const urgentAlerts = allUpcomingInstallments.filter((item) => item.diffDays <= 3);
 
-  // Fungsi Copy Share Link Modern
   const handleCopyShareLink = (loanId: string, shareToken: string) => {
     const shareUrl = `${window.location.origin}/share/${shareToken}`;
     navigator.clipboard.writeText(shareUrl);
@@ -177,7 +172,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 mt-2 truncate font-medium">
-                  {nearestInstallment.loan.nama_barang} • {nearestInstallment.loan.debtor?.nama_teman} (Ke-{nearestInstallment.installment.cicilan_ke})
+                  {nearestInstallment.loan.nama_barang} - {nearestInstallment.loan.debtor?.nama_teman} (Ke-{nearestInstallment.installment.cicilan_ke})
                 </p>
               </div>
             ) : (
@@ -281,7 +276,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Dual Progress Bars */}
+      {/* Dual Progress Bars dengan Perlindungan Ekstra */}
       <Card className="space-y-4">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
           <span>Perbandingan Pembayaran & Pelunasan</span>
@@ -290,9 +285,16 @@ export default function DashboardPage() {
           <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/60">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs font-bold text-slate-700">Setoran dari Teman</span>
-              <span className="text-xs font-extrabold text-emerald-600">{pctSetorTeman}%</span>
+              <span className="text-xs font-extrabold text-emerald-600">
+                {Number.isNaN(pctSetorTeman) ? 0 : Math.min(100, Math.max(0, pctSetorTeman))}%
+              </span>
             </div>
-            <Progress value={pctSetorTeman} showPercentage={false} color="emerald" size="lg" />
+            <Progress
+              value={Number.isNaN(pctSetorTeman) ? 0 : Math.min(100, Math.max(0, pctSetorTeman))}
+              showPercentage={false}
+              color="emerald"
+              size="lg"
+            />
             <div className="mt-2 flex justify-between text-xs text-slate-500">
               <span>Disetor: {formatRupiah(totalSemuaSetorTeman)}</span>
               <span>Sisa: {formatRupiah(totalSisaUtangTeman)}</span>
@@ -302,9 +304,16 @@ export default function DashboardPage() {
           <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/60">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs font-bold text-slate-700">Pembayaran ke Shopee PayLater</span>
-              <span className="text-xs font-extrabold text-shopee-600">{pctBayarShopee}%</span>
+              <span className="text-xs font-extrabold text-shopee-600">
+                {Number.isNaN(pctBayarShopee) ? 0 : Math.min(100, Math.max(0, pctBayarShopee))}%
+              </span>
             </div>
-            <Progress value={pctBayarShopee} showPercentage={false} color="shopee" size="lg" />
+            <Progress
+              value={Number.isNaN(pctBayarShopee) ? 0 : Math.min(100, Math.max(0, pctBayarShopee))}
+              showPercentage={false}
+              color="shopee"
+              size="lg"
+            />
             <div className="mt-2 flex justify-between text-xs text-slate-500">
               <span>Dibayar: {formatRupiah(totalSemuaBayarShopee)}</span>
               <span>Sisa: {formatRupiah(Math.max(0, totalSemuaTagihan - totalSemuaBayarShopee))}</span>
@@ -335,12 +344,11 @@ export default function DashboardPage() {
                       {alert.label}
                     </span>
                     <span className="text-xs font-bold text-slate-800">
-                      {alert.loan.nama_barang} • Cicilan ke-{alert.installment.cicilan_ke}
+                      {alert.loan.nama_barang} - Cicilan ke-{alert.installment.cicilan_ke}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Teman peminjam: <strong className="text-slate-700">{alert.loan.debtor?.nama_teman}</strong> • Jatuh tempo{' '}
-                    {formatTanggalIndo(alert.installment.jatuh_tempo)}
+                    Teman peminjam: <strong className="text-slate-700">{alert.loan.debtor?.nama_teman}</strong> - Jatuh tempo {formatTanggalIndo(alert.installment.jatuh_tempo)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 justify-between sm:justify-end">
@@ -465,7 +473,7 @@ export default function DashboardPage() {
         isOpen={isDebtorPaymentOpen}
         onClose={() => setIsDebtorPaymentOpen(false)}
         loans={loans}
-        onSuccess={() => refreshData()} // Refresh otomatis saat setoran berhasil
+        onSuccess={() => refreshData()}
       />
 
       <ShopeePayModal
@@ -473,7 +481,7 @@ export default function DashboardPage() {
         onClose={() => setSelectedShopeeInst(null)}
         installment={selectedShopeeInst?.installment || null}
         namaBarang={selectedShopeeInst?.loan.nama_barang}
-        onSuccess={() => refreshData()} // Refresh otomatis saat tagihan shopee berhasil dibayar
+        onSuccess={() => refreshData()}
       />
     </div>
   );
