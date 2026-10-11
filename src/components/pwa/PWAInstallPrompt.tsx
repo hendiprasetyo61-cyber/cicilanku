@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 
 const DISMISS_KEY = 'cicilanku-pwa-dismissed-at';
 const DISMISS_DAYS = 7;
@@ -107,20 +106,19 @@ export const PWAInstallPrompt: React.FC = () => {
 
       <div className="mt-3 flex items-center gap-2">
         {deferredPrompt && (
-          <Button
-            size="sm"
-            variant="secondary"
+          <button
+            type="button"
             onClick={handleInstallClick}
-            className="bg-white text-slate-900 hover:bg-slate-100 font-bold"
+            className="inline-flex items-center rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-900 shadow-sm transition hover:bg-slate-100"
           >
-            <Download className="h-4 w-4 mr-1.5 text-shopee-600" />
+            <Download className="mr-1.5 h-4 w-4 text-shopee-600" />
             Install Sekarang
-          </Button>
+          </button>
         )}
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-xs text-orange-100 hover:text-white px-2.5 py-1.5 font-medium transition"
+          className="px-2.5 py-1.5 text-xs font-medium text-orange-100 transition hover:text-white"
         >
           Nanti Saja
         </button>

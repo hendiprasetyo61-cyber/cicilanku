@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { LayoutDashboard, CreditCard, ArrowDownCircle, Users, Settings } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -35,8 +34,9 @@ export default function DashboardLayout({
         <div className="container mx-auto max-w-5xl px-4 flex gap-6">
           {desktopNavItems.map((item) => {
             const Icon = item.icon;
-            // Logika untuk menentukan apakah menu sedang aktif
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/' && pathname.startsWith(item.href));
 
             return (
               <Link
@@ -58,7 +58,6 @@ export default function DashboardLayout({
 
       {/* Main Content Area */}
       <main className="container mx-auto max-w-5xl px-4 py-5 flex-1">
-        <PWAInstallPrompt />
         {children}
       </main>
 
