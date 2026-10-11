@@ -172,7 +172,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 mt-2 truncate font-medium">
-                  {nearestInstallment.loan.nama_barang} - {nearestInstallment.loan.debtor?.nama_teman} (Ke-{nearestInstallment.installment.cicilan_ke})
+                  {nearestInstallment.loan.nama_barang} • {nearestInstallment.loan.debtor?.nama_teman} (Ke-{nearestInstallment.installment.cicilan_ke})
                 </p>
               </div>
             ) : (
@@ -234,7 +234,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        {/* Card 3: Posisi Kas Saya (Nombok vs Surplus) */}
+        {/* Card 3: Posisi Kas Saya */}
         <Card
           hoverable
           className={`border-l-4 flex flex-col justify-between ${isKasNombok ? 'border-l-rose-500 bg-rose-50/20' : 'border-l-emerald-500 bg-emerald-50/20'
@@ -276,7 +276,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Dual Progress Bars dengan Perlindungan Ekstra */}
+      {/* Dual Progress Bars */}
       <Card className="space-y-4">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
           <span>Perbandingan Pembayaran & Pelunasan</span>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      {/* Urgent Alerts (Telat & Mendekati Jatuh Tempo) */}
+      {/* Urgent Alerts */}
       {urgentAlerts.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/40">
           <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-3">
@@ -344,11 +344,11 @@ export default function DashboardPage() {
                       {alert.label}
                     </span>
                     <span className="text-xs font-bold text-slate-800">
-                      {alert.loan.nama_barang} - Cicilan ke-{alert.installment.cicilan_ke}
+                      {alert.loan.nama_barang} • Cicilan ke-{alert.installment.cicilan_ke}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Teman peminjam: <strong className="text-slate-700">{alert.loan.debtor?.nama_teman}</strong> - Jatuh tempo {formatTanggalIndo(alert.installment.jatuh_tempo)}
+                    Teman peminjam: <strong className="text-slate-700">{alert.loan.debtor?.nama_teman}</strong> • Jatuh tempo {formatTanggalIndo(alert.installment.jatuh_tempo)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 justify-between sm:justify-end">
@@ -402,6 +402,8 @@ export default function DashboardPage() {
               const summary = calculateLoanBalance(loan, loan.installments || [], loan.debtor_payments || []);
               const isCopied = copiedLoanId === loan.id;
 
+              const safePctSetor = Math.max(0, Math.min(100, Number(summary.persentaseSetorTeman) || 0));
+
               return (
                 <Card key={loan.id} hoverable className="flex flex-col justify-between">
                   <div>
@@ -442,10 +444,9 @@ export default function DashboardPage() {
 
                     <div className="mt-3">
                       <Progress
-                        value={summary.persentaseSetorTeman}
+                        value={safePctSetor}
                         label="Pelunasan Teman"
                         color="emerald"
-                        size="sm"
                       />
                     </div>
                   </div>
